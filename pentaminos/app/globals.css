@@ -6,10 +6,14 @@
   --foreground: #172033;
 
   --radius: 0.625rem;
+  --button-height: 38px;
+
   --primary: #5B4CE2;
   --primary-foreground: oklch(0.985 0 0);
+  --primary-hover: color-mix(in oklch, var(--primary), transparent 20%);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: #172033;
+  --secondary-hover: color-mix(in oklch, var(--secondary), var(--foreground) 5%);
   --muted: oklch(0.97 0 0);
   --muted-foreground: #9CA3AF;
   --accent: oklch(0.97 0 0);
@@ -18,13 +22,20 @@
   --card-foreground: #172033;
   --popover: #FFFFFF;
   --popover-foreground: #172033;
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: #EF4444;
   --destructive-foreground: oklch(0.985 0 0);
+  --destructive-hover: color-mix(in oklch, var(--destructive), transparent 10%);
+  --destructive-muted: color-mix(in oklch, var(--destructive), transparent 90%);
+  --destructive-muted-hover: color-mix(in oklch, var(--destructive), transparent 80%);
   --warning: oklch(0.666 0.179 58.318);
   --warning-foreground: oklch(0.987 0.022 95.277);
+  --warning-muted: color-mix(in oklch, var(--warning), transparent 85%);
+  --warning-muted-hover: color-mix(in oklch, var(--warning), transparent 75%);
   --border: #E2E5EA;
   --input: #D1D5DB;
+  --input-hover: color-mix(in oklch, var(--input), transparent 50%);
   --ring: #5B4CE2;
+  --overlay: #111827;
 }
 
 @theme inline {
@@ -34,8 +45,10 @@
 
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-hover: var(--secondary-hover);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
@@ -46,40 +59,20 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-hover: var(--destructive-hover);
+  --color-destructive-muted: var(--destructive-muted);
+  --color-destructive-muted-hover: var(--destructive-muted-hover);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-warning-muted: var(--warning-muted);
+  --color-warning-muted-hover: var(--warning-muted-hover);
   --color-border: var(--border);
   --color-input: var(--input);
+  --color-input-hover: var(--input-hover);
   --color-ring: var(--ring);
+  --color-overlay: var(--overlay);
 
   --radius-md: calc(var(--radius) * 0.8);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-
-    --primary: oklch(0.67 0.182 276.935);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --destructive-foreground: oklch(0.985 0 0);
-    --warning: oklch(0.828 0.189 84.429);
-    --warning-foreground: oklch(0.279 0.077 45.635);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-  }
 }
 
 body {
