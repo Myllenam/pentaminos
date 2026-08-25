@@ -4,17 +4,19 @@ import { useState } from "react";
 
 import { Alert } from "@/components/alert/alert";
 import { Header } from "@/components/header/header";
+import { Ranking } from "@/components/ranking/ranking";
 
 export default function Page() {
   const [restartOpen, setRestartOpen] = useState(false);
   const [newGameOpen, setNewGameOpen] = useState(false);
+  const [rankingOpen, setRankingOpen] = useState(false);
 
   return (
     <div className="flex flex-col flex-1 bg-zinc-50 font-sans">
       <Header
         onRestart={() => setRestartOpen(true)}
         onNewGame={() => setNewGameOpen(true)}
-        onOpenRanking={() => console.log("abrir ranking")}
+        onOpenRanking={() => setRankingOpen(true)}
       />
 
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-between px-16 py-32">
@@ -41,6 +43,8 @@ export default function Page() {
         confirmLabel="Novo Jogo"
         onConfirm={() => console.log("novo jogo iniciado")}
       />
+
+      <Ranking open={rankingOpen} onOpenChange={setRankingOpen} />
     </div>
   );
 }
