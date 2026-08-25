@@ -1,15 +1,11 @@
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { BackgroundDecoration } from "@/components/background-decoration/background-decoration";
+import { GameSetup } from "@/components/game-setup/game-setup";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center gap-8">
-      Página Inicial
-      <div className="flex flex-col items-center w-56">
-        <Button asChild>
-          <Link href="/jogar">Ir para o jogo</Link>
-        </Button>
-      </div>
+    <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-zinc-50 px-4 py-16">
+      <BackgroundDecoration />
+      <GameSetup />
     </div>
   );
 }
