@@ -21,6 +21,7 @@ export function Board({ config, placedPieces, shapes, onCellClick }: BoardProps)
 
     shape.cells.forEach(([r, c]) => {
       const row = piece.origin![0] + r;
+      
       const col = piece.origin![1] + c;
       cellColorMap.set(`${row}-${col}`, shape.color);
     });
