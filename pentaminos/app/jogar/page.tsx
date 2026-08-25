@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Alert } from "@/components/alert/alert";
+import { Controles } from "@/components/controles/controles";
 import { Header } from "@/components/header/header";
 
 export default function Page() {
@@ -22,6 +23,10 @@ export default function Page() {
           Playground de teste — clique em &quot;Reiniciar&quot; ou &quot;Novo Jogo&quot;.
         </p>
       </main>
+
+      <div className="fixed right-6 bottom-8 z-40">
+        <Controles onInfoClick={() => console.log("abrir detalhes")} />
+      </div>
 
       <Alert
         open={restartOpen}
