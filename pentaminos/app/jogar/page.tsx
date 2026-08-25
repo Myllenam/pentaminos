@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 import { Alert } from "@/components/alert/alert";
@@ -45,6 +45,9 @@ function GamePage() {
     null,
   );
 
+  const [hasFinished, setHasFinished] = useState(false);
+  const hasRegisteredGame = useRef(false);
+
   const filledCells = useMemo(
     () => pieces.filter((p) => p.origin !== null).length * 5,
     [pieces],
@@ -67,6 +70,9 @@ function GamePage() {
 
   const handleRestart = () => {
     const novoTabuleiro = gerarTabuleiro(pieceCount);
+
+    hasRegisteredGame.current = false;
+
     setBoard(novoTabuleiro);
     setElapsedSeconds(0);
     setIsRunning(true);
@@ -146,16 +152,37 @@ function GamePage() {
         return;
       }
 
-      setPieces((current) =>
-        current.map((piece) =>
+      setPieces((current) => {
+        const updatedPieces = current.map((piece) =>
           piece.instanceId === selectedInstanceId
             ? {
                 ...piece,
                 origin,
               }
             : piece,
-        ),
-      );
+        );
+
+        // Verifica se todas as peças foram colocadas
+        const isFinished = updatedPieces.every(
+          (piece) => piece.origin !== null,
+        );
+
+        // Registra a partida apenas uma vez
+        if (isFinished && !hasRegisteredGame.current) {
+          hasRegisteredGame.current = true;
+
+          finishGame({
+            player: playerName,
+            pieces: pieceCount,
+            elapsedSeconds,
+          });
+
+          setIsRunning(false);
+          setRankingOpen(true);
+        }
+
+        return updatedPieces;
+      });
 
       setSelectedInstanceId(null);
 
@@ -168,11 +195,15 @@ function GamePage() {
     // ==========================================
 
     const owner = pieces.find((piece) => {
-      if (!piece.origin) return false;
+      if (!piece.origin) {
+        return false;
+      }
 
       const shape = PENTOMINOES.find((s) => s.id === piece.shapeId);
 
-      if (!shape) return false;
+      if (!shape) {
+        return false;
+      }
 
       const cells = getPieceCells(shape, piece.rotation, piece.origin);
 
@@ -202,16 +233,7 @@ function GamePage() {
    * no momento em que a lógica do tabuleiro detectar que todas as
    * células foram preenchidas corretamente.
    */
-  const handleFinishTest = () => {
-    setIsRunning(false);
-    finishGame({
-      player: playerName,
-      pieces: pieceCount,
-      elapsedSeconds,
-    });
-    setRankingOpen(true);
-  };
-
+ 
   return (
     <div className="relative flex min-h-screen flex-col  bg-zinc-50">
       <Header
