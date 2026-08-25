@@ -10,14 +10,17 @@ import { ComoJogar } from "@/components/como-jogar/como-jogar";
 import { Ranking } from "@/components/ranking/ranking";
 import { finishGame, formatElapsedTime } from "@/lib/ranking";
 import { Progresso } from "@/components/progresso/progresso";
-import {
-  getMockGamePieces,
-  MOCK_BOARD_CONFIG,
-  PENTOMINOES,
-} from "@/lib/mocks/pentominos";
+import { PENTOMINOES } from "@/lib/mocks/pentominos";
 import { PlacedPiece } from "@/lib/types/pentomino";
 import { PieceCard } from "@/components/pieceCard/pieceCard";
 import { Board } from "@/components/board/board";
+import {
+  canPlacePiece,
+  gerarTabuleiro,
+  getPieceCells,
+  getPreviewOrigin,
+  transformCells,
+} from "@/lib/functions/pentominoGenerator";
 
 function GamePage() {
   const searchParams = useSearchParams();
@@ -33,10 +36,11 @@ function GamePage() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(true);
 
-  // ---- estado do tabuleiro (mockado) ----
-  const [pieces, setPieces] = useState<PlacedPiece[]>(() =>
-    getMockGamePieces(pieceCount),
+  const [board, setBoard] = useState(() => gerarTabuleiro(pieceCount));
+  const [pieces, setPieces] = useState<PlacedPiece[]>(
+    () => board.availablePieces,
   );
+
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(
     null,
   );
@@ -45,7 +49,11 @@ function GamePage() {
     () => pieces.filter((p) => p.origin !== null).length * 5,
     [pieces],
   );
+
   const remainingPieces = pieces.filter((p) => p.origin === null);
+
+  const selectedPiece =
+    pieces.find((piece) => piece.instanceId === selectedInstanceId) ?? null;
 
   useEffect(() => {
     if (!isRunning) return;
@@ -58,11 +66,12 @@ function GamePage() {
   }, [isRunning]);
 
   const handleRestart = () => {
+    const novoTabuleiro = gerarTabuleiro(pieceCount);
+    setBoard(novoTabuleiro);
     setElapsedSeconds(0);
     setIsRunning(true);
-    setPieces(getMockGamePieces(pieceCount));
+    setPieces(novoTabuleiro.availablePieces);
     setSelectedInstanceId(null);
-    console.log("partida reiniciada");
   };
 
   const handleSelectPiece = (instanceId: string) => {
@@ -70,36 +79,122 @@ function GamePage() {
       current === instanceId ? null : instanceId,
     );
   };
+  const handleRotatePiece = (instanceId: string) => {
+    setPieces((current) =>
+      current.map((piece) => {
+        if (piece.instanceId !== instanceId) {
+          return piece;
+        }
+
+        const nextRotation =
+          piece.rotation === 0
+            ? 90
+            : piece.rotation === 90
+              ? 180
+              : piece.rotation === 180
+                ? 270
+                : 0;
+
+        return {
+          ...piece,
+          rotation: nextRotation,
+        };
+      }),
+    );
+  };
 
   // clique numa célula do board: remove peça se já ocupada, senão posiciona a selecionada
   const handleCellClick = (row: number, col: number) => {
-    const owner = pieces.find((piece) => {
-      if (!piece.origin) return false;
-      const shape = PENTOMINOES.find((s) => s.id === piece.shapeId);
-      if (!shape) return false;
-      return shape.cells.some(
-        ([r, c]) =>
-          piece.origin![0] + r === row && piece.origin![1] + c === col,
-      );
-    });
+    // ==========================================
+    // 1. TEMOS UMA PEÇA SELECIONADA?
+    // ==========================================
 
-    if (owner) {
+    if (selectedInstanceId) {
+      const selectedPiece = pieces.find(
+        (piece) => piece.instanceId === selectedInstanceId,
+      );
+
+      if (!selectedPiece) {
+        return;
+      }
+
+      const shape = PENTOMINOES.find((s) => s.id === selectedPiece.shapeId);
+
+      if (!shape) {
+        return;
+      }
+
+      const clickedCell: [number, number] = [row, col];
+
+      const transformedCells = transformCells(
+        shape.cells,
+        selectedPiece.rotation,
+      );
+
+      const origin = getPreviewOrigin(transformedCells, clickedCell);
+
+      const canPlace = canPlacePiece(
+        shape,
+        selectedPiece.rotation,
+        origin,
+        board.config,
+        pieces,
+        selectedPiece.instanceId,
+      );
+
+      if (!canPlace) {
+        return;
+      }
+
       setPieces((current) =>
-        current.map((p) =>
-          p.instanceId === owner.instanceId ? { ...p, origin: null } : p,
+        current.map((piece) =>
+          piece.instanceId === selectedInstanceId
+            ? {
+                ...piece,
+                origin,
+              }
+            : piece,
         ),
       );
+
+      setSelectedInstanceId(null);
+
       return;
     }
 
-    if (!selectedInstanceId) return;
+    // ==========================================
+    // 2. NÃO TEM PEÇA SELECIONADA
+    //    → podemos remover uma existente
+    // ==========================================
+
+    const owner = pieces.find((piece) => {
+      if (!piece.origin) return false;
+
+      const shape = PENTOMINOES.find((s) => s.id === piece.shapeId);
+
+      if (!shape) return false;
+
+      const cells = getPieceCells(shape, piece.rotation, piece.origin);
+
+      return cells.some(
+        ([cellRow, cellCol]) => cellRow === row && cellCol === col,
+      );
+    });
+
+    if (!owner) {
+      return;
+    }
 
     setPieces((current) =>
-      current.map((p) =>
-        p.instanceId === selectedInstanceId ? { ...p, origin: [row, col] } : p,
+      current.map((piece) =>
+        piece.instanceId === owner.instanceId
+          ? {
+              ...piece,
+              origin: null,
+            }
+          : piece,
       ),
     );
-    setSelectedInstanceId(null);
   };
 
   /**
@@ -122,7 +217,7 @@ function GamePage() {
       <Header
         playerName={playerName}
         time={formatElapsedTime(elapsedSeconds)}
-        filledCells={0}
+        filledCells={filledCells}
         totalCells={totalCells}
         onRestart={() => setRestartOpen(true)}
         onNewGame={() => setNewGameOpen(true)}
@@ -138,13 +233,13 @@ function GamePage() {
             </p>
             <div className="flex flex-col gap-2">
               {remainingPieces.map((piece) => {
-                const shape = PENTOMINOES.find((s) => s.id === piece.shapeId)!;
                 return (
                   <PieceCard
                     key={piece.instanceId}
-                    shape={shape}
+                    piece={piece}
                     selected={selectedInstanceId === piece.instanceId}
                     onSelect={() => handleSelectPiece(piece.instanceId)}
+                    onRotate={() => handleRotatePiece(piece.instanceId)}
                   />
                 );
               })}
@@ -154,19 +249,21 @@ function GamePage() {
 
         <section className="flex flex-1 flex-col items-center justify-start pt-10">
           <Board
-            config={MOCK_BOARD_CONFIG}
+            config={board.config}
             placedPieces={pieces}
             shapes={PENTOMINOES}
+            previewPiece={selectedPiece}
             onCellClick={handleCellClick}
           />
         </section>
 
         <aside className="flex w-[288px] shrink-0 flex-col gap-4 ">
           <Progresso
-            celulasPreenchidas={20}
-            totalCelulas={30}
-            pecasRestantes={2}
+            celulasPreenchidas={filledCells}
+            totalCelulas={totalCells}
+            pecasRestantes={remainingPieces.length}
           />
+
           <ComoJogar />
 
           <Controles onInfoClick={() => console.log("abrir detalhes")} />
