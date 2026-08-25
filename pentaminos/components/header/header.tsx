@@ -52,7 +52,7 @@ export function Header({
           <span className="text-xs font-medium tracking-wide text-muted-foreground">
             TEMPO
           </span>
-          <span className="text-sm font-semibold text-primary">{time}</span>
+          <span className="text-sm font-bold text-primary font-cousine">{time}</span>
         </div>
 
         <div className="flex flex-col items-center">

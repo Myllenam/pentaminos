@@ -4,7 +4,6 @@
 :root {
   --background: #F5F7FA;
   --foreground: #172033;
-
   --radius: 0.625rem;
   --button-height: 38px;
 
@@ -42,7 +41,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-inter: var(--font-inter);
-
+  --font-cousine: var(--font-cousine);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-hover: var(--primary-hover);
@@ -70,10 +69,11 @@
   --color-input: var(--input);
   --color-input-hover: var(--input-hover);
   --color-ring: var(--ring);
-  --color-overlay: var(--overlay);
-
   --radius-md: calc(var(--radius) * 0.8);
+  --color-overlay: var(--overlay);
 }
+
+
 
 body {
   background: var(--background);
