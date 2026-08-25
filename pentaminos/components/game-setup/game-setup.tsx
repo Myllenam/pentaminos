@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Play, Trophy } from "lucide-react";
 
 import { Logo } from "@/components/logo/logo";
+import { Ranking } from "@/components/ranking/ranking";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QuantityStepper } from "@/components/quantity-stepper/quantity-stepper";
@@ -13,6 +14,7 @@ export function GameSetup() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [pieceCount, setPieceCount] = useState(6);
+  const [rankingOpen, setRankingOpen] = useState(false);
 
   const handleStart = () => {
     const params = new URLSearchParams({
@@ -75,10 +77,11 @@ export function GameSetup() {
             Iniciar Partida
           </Button>
           <Button
+            type="button"
             variant="outline"
             size="lg"
             data-icon="inline-start"
-            onClick={() => console.log("abrir ranking")}
+            onClick={() => setRankingOpen(true)}
           >
             <Trophy data-icon="inline-start" className="text-warning" />
             Ver Ranking
@@ -89,6 +92,8 @@ export function GameSetup() {
       <p className="max-w-sm text-center text-xs text-muted-foreground">
         As peças são sorteadas aleatoriamente entre os 12 pentaminós clássicos.
       </p>
+
+      <Ranking open={rankingOpen} onOpenChange={setRankingOpen} />
     </div>
   );
 }
