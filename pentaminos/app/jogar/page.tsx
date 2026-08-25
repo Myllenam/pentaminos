@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Alert } from "@/components/alert/alert";
 import { Header } from "@/components/header/header";
 import { ComoJogar } from "@/components/como-jogar/como-jogar";
+import { Progresso } from "@/components/progresso/progresso";
 
 export default function Page() {
   const [restartOpen, setRestartOpen] = useState(false);
@@ -22,7 +23,7 @@ export default function Page() {
       
       {/*Peças*/}
       <aside className="w-1/4">
-        {/* Futuramente você coloca o componente de peças aqui */}
+        {/*Peças*/}
       </aside>
 
       {/*Tabuleiro*/}
@@ -35,6 +36,11 @@ export default function Page() {
 
       <aside className="flex w-1/4 flex-col gap-6">
         {/*Progresso*/}
+        <Progresso
+          celulasPreenchidas={20}
+          totalCelulas={30}
+          pecasRestantes={2}
+        />
         {/*Como Jogar*/}
         <ComoJogar />
         {/*Controles*/}
