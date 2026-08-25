@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { FlagTriangleRight } from "lucide-react";
 
 import { Alert } from "@/components/alert/alert";
+import { Controles } from "@/components/controles/controles";
 import { Header } from "@/components/header/header";
 import { Ranking } from "@/components/ranking/ranking";
 import { Button } from "@/components/ui/button";
@@ -84,6 +85,10 @@ function GamePage() {
           Finalizar jogo (teste)
         </Button>
       </main>
+
+      <div className="fixed right-6 bottom-8 z-40">
+        <Controles onInfoClick={() => console.log("abrir detalhes")} />
+      </div>
 
       <Alert
         open={restartOpen}
