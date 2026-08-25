@@ -1,46 +1,15 @@
-"use client";
-
-import { useState } from "react";
-
-import { Alert } from "@/components/alert/alert";
-import { Header } from "@/components/header/header";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function Home() {
-  const [restartOpen, setRestartOpen] = useState(false);
-  const [newGameOpen, setNewGameOpen] = useState(false);
-
   return (
-    <div className="flex flex-col flex-1 bg-zinc-50 font-sans">
-      <Header
-        onRestart={() => setRestartOpen(true)}
-        onNewGame={() => setNewGameOpen(true)}
-        onOpenRanking={() => console.log("abrir ranking")}
-      />
-
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-between px-16 py-32">
-        <p className="font-bold text-foreground">
-          Playground de teste — clique em &quot;Reiniciar&quot; ou &quot;Novo Jogo&quot;.
-        </p>
-      </main>
-
-      <Alert
-        open={restartOpen}
-        onOpenChange={setRestartOpen}
-        title="Reiniciar partida?"
-        description="Tem certeza que deseja reiniciar a partida? Todo o progresso atual será perdido."
-        confirmLabel="Reiniciar"
-        variant="destructive-solid"
-        onConfirm={() => console.log("partida reiniciada")}
-      />
-
-      <Alert
-        open={newGameOpen}
-        onOpenChange={setNewGameOpen}
-        title="Iniciar novo jogo?"
-        description="Deseja abandonar a partida atual e iniciar um novo jogo? O progresso atual será perdido."
-        confirmLabel="Novo Jogo"
-        onConfirm={() => console.log("novo jogo iniciado")}
-      />
+    <div className="flex flex-col flex-1 items-center justify-center gap-8">
+      Página Inicial
+      <div className="flex flex-col items-center w-56">
+        <Button asChild>
+          <Link href="/jogar">Ir para o jogo</Link>
+        </Button>
+      </div>
     </div>
   );
 }
