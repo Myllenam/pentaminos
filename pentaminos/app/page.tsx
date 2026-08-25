@@ -1,14 +1,46 @@
+"use client";
+
+import { useState } from "react";
+
+import { Alert } from "@/components/alert/alert";
 import { Header } from "@/components/header/header";
 
 export default function Home() {
+  const [restartOpen, setRestartOpen] = useState(false);
+  const [newGameOpen, setNewGameOpen] = useState(false);
+
   return (
     <div className="flex flex-col flex-1 bg-zinc-50 font-sans">
-      {/* Preview temporário do Header - remover depois de visualizar */}
-      <Header />
+      <Header
+        onRestart={() => setRestartOpen(true)}
+        onNewGame={() => setNewGameOpen(true)}
+        onOpenRanking={() => console.log("abrir ranking")}
+      />
 
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 mx-auto">
-        <p className="text-lime-950 font-bold">PENTAMINÓS</p>
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-between px-16 py-32">
+        <p className="font-bold text-foreground">
+          Playground de teste — clique em &quot;Reiniciar&quot; ou &quot;Novo Jogo&quot;.
+        </p>
       </main>
+
+      <Alert
+        open={restartOpen}
+        onOpenChange={setRestartOpen}
+        title="Reiniciar partida?"
+        description="Tem certeza que deseja reiniciar a partida? Todo o progresso atual será perdido."
+        confirmLabel="Reiniciar"
+        variant="destructive-solid"
+        onConfirm={() => console.log("partida reiniciada")}
+      />
+
+      <Alert
+        open={newGameOpen}
+        onOpenChange={setNewGameOpen}
+        title="Iniciar novo jogo?"
+        description="Deseja abandonar a partida atual e iniciar um novo jogo? O progresso atual será perdido."
+        confirmLabel="Novo Jogo"
+        onConfirm={() => console.log("novo jogo iniciado")}
+      />
     </div>
   );
 }
