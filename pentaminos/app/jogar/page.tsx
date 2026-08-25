@@ -22,7 +22,7 @@ export default function Page() {
       
       {/*Peças*/}
       <aside className="w-1/4">
-        {/* Futuramente você coloca o componente de peças aqui */}
+        {/*Peças*/}
       </aside>
 
       {/*Tabuleiro*/}
