@@ -7,6 +7,7 @@ import { FlagTriangleRight } from "lucide-react";
 import { Alert } from "@/components/alert/alert";
 import { Controles } from "@/components/controles/controles";
 import { Header } from "@/components/header/header";
+import { ComoJogar } from "@/components/como-jogar/como-jogar";
 import { Ranking } from "@/components/ranking/ranking";
 import { Button } from "@/components/ui/button";
 import { finishGame, formatElapsedTime } from "@/lib/ranking";
@@ -67,26 +68,23 @@ function GamePage() {
         onOpenRanking={() => setRankingOpen(true)}
       />
 
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-between px-16 py-32">
-        <p className="font-bold text-foreground">
-          Playground de teste — clique em &quot;Reiniciar&quot; ou &quot;Novo Jogo&quot;.
-        </p>
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-row gap-8 px-8 py-12">
+        {/*Peças*/}
+        <aside className="w-1/4">{/*Peças*/}</aside>
 
-        {/* Botão temporário só para validar o fluxo de vitória + ranking.
-            Remover quando a lógica real do tabuleiro estiver pronta. */}
-        <Button
-          type="button"
-          variant="secondary"
-          data-icon="inline-start"
-          className="w-auto"
-          onClick={handleFinishTest}
-        >
-          <FlagTriangleRight data-icon="inline-start" />
-          Finalizar jogo (teste)
-        </Button>
+        {/*Tabuleiro*/}
+        <section className="flex flex-1 flex-col items-center justify-start pt-10">
+          <p className="font-bold text-foreground">
+            Playground de teste — clique em &quot;Reiniciar&quot; ou &quot;Novo
+            Jogo&quot;.
+          </p>
+          {/*Tabuleiro + Botão de Resolver*/}
+        </section>
       </main>
 
-      <div className="fixed right-6 bottom-8 z-40">
+      <div className="fixed right-6 bottom-8 z-40 w-[288px] gap-4 flex-col flex">
+        <ComoJogar />
+
         <Controles onInfoClick={() => console.log("abrir detalhes")} />
       </div>
 
