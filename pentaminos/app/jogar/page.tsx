@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Alert } from "@/components/alert/alert";
 import { Header } from "@/components/header/header";
+import { ComoJogar } from "@/components/como-jogar/como-jogar";
 
 export default function Page() {
   const [restartOpen, setRestartOpen] = useState(false);
@@ -17,10 +18,28 @@ export default function Page() {
         onOpenRanking={() => console.log("abrir ranking")}
       />
 
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-between px-16 py-32">
+    <main className="mx-auto flex w-full max-w-7xl flex-1 flex-row gap-8 px-8 py-12">
+      
+      {/*Peças*/}
+      <aside className="w-1/4">
+        {/* Futuramente você coloca o componente de peças aqui */}
+      </aside>
+
+      {/*Tabuleiro*/}
+      <section className="flex flex-1 flex-col items-center justify-start pt-10">
         <p className="font-bold text-foreground">
           Playground de teste — clique em &quot;Reiniciar&quot; ou &quot;Novo Jogo&quot;.
         </p>
+        {/*Tabuleiro + Botão de Resolver*/}
+      </section>
+
+      <aside className="flex w-1/4 flex-col gap-6">
+        {/*Progresso*/}
+        {/*Como Jogar*/}
+        <ComoJogar />
+        {/*Controles*/}
+      </aside>
+
       </main>
 
       <Alert
