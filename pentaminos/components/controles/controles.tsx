@@ -9,7 +9,7 @@ interface ControleItem {
   icon?: LucideIcon;
 }
 
-const CONTROLE: ControleItem[] = [
+const CONTROLES: ControleItem[] = [
   { label: "Selecionar peça", action: "Clique" },
   { label: "Girar peça", action: "Girar", icon: RotateCcw },
   { label: "Posicionar", action: "Clique no board" },
@@ -17,12 +17,12 @@ const CONTROLE: ControleItem[] = [
   { label: "Resolver", action: "Botão", icon: Zap },
 ];
 
-export interface ControleProps {
+export interface ControlesProps {
   className?: string;
   onInfoClick?: () => void;
 }
 
-export function Controle({ className, onInfoClick }: ControleProps) {
+export function Controles({ className, onInfoClick }: ControlesProps) {
   return (
     <div
       className={cn(
@@ -45,7 +45,7 @@ export function Controle({ className, onInfoClick }: ControleProps) {
       </div>
 
       <ul className="mt-5 flex flex-col gap-3.5">
-        {CONTROLE.map((item) => (
+        {CONTROLES.map((item) => (
           <li
             key={item.label}
             className="flex items-center justify-between gap-4"
