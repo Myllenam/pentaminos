@@ -2,15 +2,15 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { FlagTriangleRight } from "lucide-react";
+
 
 import { Alert } from "@/components/alert/alert";
 import { Controles } from "@/components/controles/controles";
 import { Header } from "@/components/header/header";
 import { ComoJogar } from "@/components/como-jogar/como-jogar";
 import { Ranking } from "@/components/ranking/ranking";
-import { Button } from "@/components/ui/button";
 import { finishGame, formatElapsedTime } from "@/lib/ranking";
+import { Progresso } from "@/components/progresso/progresso";
 
 function GamePage() {
   const searchParams = useSearchParams();
@@ -57,7 +57,7 @@ function GamePage() {
   };
 
   return (
-    <div className="flex flex-col flex-1 bg-zinc-50 font-sans">
+    <div className="relative flex min-h-screen flex-col  bg-zinc-50">
       <Header
         playerName={playerName}
         time={formatElapsedTime(elapsedSeconds)}
@@ -68,7 +68,7 @@ function GamePage() {
         onOpenRanking={() => setRankingOpen(true)}
       />
 
-      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-row gap-8 px-8 py-12">
+      <main className="mx-auto flex w-full flex-1 flex-row gap-8 px-8 py-12">
         {/*Peças*/}
         <aside className="w-1/4">{/*Peças*/}</aside>
 
@@ -80,13 +80,21 @@ function GamePage() {
           </p>
           {/*Tabuleiro + Botão de Resolver*/}
         </section>
-      </main>
+       
 
-      <div className="fixed right-6 bottom-8 z-40 w-[288px] gap-4 flex-col flex">
+      <aside className="flex w-[288px] shrink-0 flex-col gap-4 ">
+
+         <Progresso
+          celulasPreenchidas={20}
+          totalCelulas={30}
+          pecasRestantes={2}
+        />
         <ComoJogar />
 
         <Controles onInfoClick={() => console.log("abrir detalhes")} />
-      </div>
+      </aside>
+      </main>
+
 
       <Alert
         open={restartOpen}

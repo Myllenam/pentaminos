@@ -2,7 +2,7 @@ import { RotateCw } from "lucide-react";
 
 export function ComoJogar() {
   return (
-    <div className="w-full max-w-xs bg-white rounded-2xl shadow-md shadow-slate-200/70 p-5">
+    <div className="w-full rounded-md border border-border bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
       <h3 className="text-xs font-bold tracking-wide text-slate-800 mb-4">
         COMO JOGAR
       </h3>
