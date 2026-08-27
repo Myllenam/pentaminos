@@ -1,0 +1,13 @@
+# Store de pacotes do pnpm (cache local do workspace) — nunca versionar
+.pnpm-store/
+
+# Dependências
+node_modules/
+
+# Arquivos gerados automaticamente pelo `next dev`
+AGENTS.md
+CLAUDE.md
+
+# SO
+.DS_Store
+Thumbs.db
