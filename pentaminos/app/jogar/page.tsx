@@ -68,15 +68,17 @@ function GamePage() {
     return () => clearInterval(interval);
   }, [isRunning]);
 
+  // RF06 / UC06 / RN13: reiniciar mantém o MESMO tabuleiro e o MESMO
+  // conjunto de peças sorteadas — apenas limpa o progresso (tira todas as
+  // peças do tabuleiro) e zera o cronômetro. Não gera um novo desafio.
   const handleRestart = () => {
-    const novoTabuleiro = gerarTabuleiro(pieceCount);
-
     hasRegisteredGame.current = false;
 
-    setBoard(novoTabuleiro);
     setElapsedSeconds(0);
     setIsRunning(true);
-    setPieces(novoTabuleiro.availablePieces);
+    setPieces(
+      board.availablePieces.map((piece) => ({ ...piece, origin: null })),
+    );
     setSelectedInstanceId(null);
   };
 
