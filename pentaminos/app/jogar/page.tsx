@@ -69,14 +69,13 @@ function GamePage() {
   }, [isRunning]);
 
   const handleRestart = () => {
-    const novoTabuleiro = gerarTabuleiro(pieceCount);
-
     hasRegisteredGame.current = false;
 
-    setBoard(novoTabuleiro);
     setElapsedSeconds(0);
     setIsRunning(true);
-    setPieces(novoTabuleiro.availablePieces);
+    setPieces(
+      board.availablePieces.map((piece) => ({ ...piece, origin: null })),
+    );
     setSelectedInstanceId(null);
   };
 
