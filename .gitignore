@@ -1,0 +1,6 @@
+.pnpm-store/
+node_modules/
+AGENTS.md
+CLAUDE.md
+.DS_Store
+Thumbs.db
