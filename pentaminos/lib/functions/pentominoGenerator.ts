@@ -363,7 +363,7 @@ const TENTATIVAS_COM_REPETICAO = 60;
  *  3. fallback determinístico com peças "I" em pé, que nunca falha.
  */
 export function gerarTabuleiro(quantidadePecas: number): GeneratedBoard {
-  const n = Math.min(Math.max(quantidadePecas, 2), 12);
+  const n = Math.min(Math.max(quantidadePecas, 3), 12);
   const candidatos = calcularDimensoesCandidatas(n);
 
   for (const { rows, cols } of candidatos) {

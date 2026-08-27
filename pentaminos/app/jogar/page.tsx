@@ -26,7 +26,10 @@ function GamePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const playerName = searchParams.get("nome") || "Jogador";
-  const pieceCount = Number(searchParams.get("pecas")) || 6;
+  const pieceCount = Math.min(
+    Math.max(Number(searchParams.get("pecas")) || 6, 3),
+    12,
+  );
   const totalCells = pieceCount * 5; // cada pentaminó ocupa 5 células
 
   const [restartOpen, setRestartOpen] = useState(false);
