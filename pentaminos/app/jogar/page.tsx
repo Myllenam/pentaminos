@@ -26,7 +26,12 @@ function GamePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const playerName = searchParams.get("nome") || "Jogador";
-  const pieceCount = Number(searchParams.get("pecas")) || 6;
+  // RN02: quantidade de peças precisa ficar entre 3 e 12, mesmo que a URL
+  // traga um valor fora do intervalo.
+  const pieceCount = Math.min(
+    Math.max(Number(searchParams.get("pecas")) || 6, 3),
+    12,
+  );
   const totalCells = pieceCount * 5; // cada pentaminó ocupa 5 células
 
   const [restartOpen, setRestartOpen] = useState(false);

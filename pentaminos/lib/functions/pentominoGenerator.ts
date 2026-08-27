@@ -349,7 +349,7 @@ const TENTATIVAS_SEM_REPETICAO = 40;
 const TENTATIVAS_COM_REPETICAO = 60;
 
 /**
- * Gera um tabuleiro completo e válido para `quantidadePecas` (2 a 12
+ * Gera um tabuleiro completo e válido para `quantidadePecas` (3 a 12
  * peças), depois "quebra" essa configuração: devolve o board vazio
  * (config) e o banco de peças disponíveis (availablePieces, com
  * origin: null), mantendo a configuração original (solutionPieces)
@@ -358,12 +358,12 @@ const TENTATIVAS_COM_REPETICAO = 60;
  * Estratégia em 3 fases, para garantir que sempre existe uma solução:
  *  1. peças distintas embaralhadas (produz tabuleiros mais variados);
  *  2. se não encontrar em nenhuma dimensão candidata, permite repetir
- *     peças (necessário sobretudo para poucas peças, ex.: 2, onde não
- *     existe par de pentaminós distintos que preencha um 2x5 exato);
+ *     peças (necessário sobretudo para poucas peças, onde nem sempre
+ *     existe combinação de pentaminós distintos que preencha a área exata);
  *  3. fallback determinístico com peças "I" em pé, que nunca falha.
  */
 export function gerarTabuleiro(quantidadePecas: number): GeneratedBoard {
-  const n = Math.min(Math.max(quantidadePecas, 2), 12);
+  const n = Math.min(Math.max(quantidadePecas, 3), 12);
   const candidatos = calcularDimensoesCandidatas(n);
 
   for (const { rows, cols } of candidatos) {
