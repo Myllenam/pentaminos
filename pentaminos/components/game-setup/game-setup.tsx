@@ -62,7 +62,7 @@ export function GameSetup() {
           </span>
           <QuantityStepper value={pieceCount} onChange={setPieceCount} />
           <span className="text-center text-xs text-muted-foreground">
-            Escolha entre 2 e 12 peças.
+            Escolha entre 3 e 12 peças.
           </span>
         </div>
 
