@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 interface PieceCardProps {
   piece: PlacedPiece;
   selected?: boolean;
-  /** true quando a peça já está posicionada no tabuleiro. */
   placed?: boolean;
   onSelect?: () => void;
   onRotate?: () => void;

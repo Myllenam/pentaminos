@@ -37,8 +37,6 @@ export function Board({
   // ---------------------------------------
 
   const cellColorMap = new Map<string, string>();
-  // Letra do pentaminó em cada célula ocupada — o tabuleiro diferencia as
-  // peças por cor E por letra (RNF06, acessibilidade para daltonismo).
   const cellLetterMap = new Map<string, string>();
 
   placedPieces.forEach((piece) => {

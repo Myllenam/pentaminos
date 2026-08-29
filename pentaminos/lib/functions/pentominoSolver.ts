@@ -4,28 +4,13 @@ import { transformCells } from "@/lib/functions/pentominoGenerator";
 
 import type { SolveRequestPiece } from "@/lib/workers/solverMessages";
 
-/**
- * Estratégia de Resolução Automática (documento de requisitos, seção 11.4).
- *
- * Reutiliza o mesmo motor de encaixe da geração — coordenadas relativas por
- * orientação, verificação de limites e colisão em O(1) sobre uma matriz —,
- * porém partindo do tabuleiro vazio e de um conjunto fixo de peças, sem
- * aleatoriedade: o objetivo é encontrar qualquer disposição válida o mais
- * rápido possível.
- *
- * Este módulo é puro (sem React, sem DOM) justamente para poder rodar dentro
- * de um Web Worker.
- */
-
 const ROTATIONS: Array<0 | 90 | 180 | 270> = [0, 90, 180, 270];
 
 interface Orientation {
   rotation: 0 | 90 | 180 | 270;
-  /** células normalizadas (menor linha/coluna em 0). */
   cells: Cell[];
 }
 
-/** Teto de nós visitados por chamada — protege o RNF07 (resposta em ≤ 10 s). */
 const MAX_NOS = 3_000_000;
 
 function serializeCells(cells: Cell[]): string {
@@ -35,7 +20,6 @@ function serializeCells(cells: Cell[]): string {
     .join("|");
 }
 
-/** Orientações geometricamente distintas (apenas rotação, sem espelhamento). */
 function orientacoesDe(shapeId: PentominoId): Orientation[] {
   const shape = PENTOMINOES.find((s) => s.id === shapeId);
   if (!shape) return [];
@@ -54,11 +38,6 @@ function orientacoesDe(shapeId: PentominoId): Orientation[] {
   return orientacoes;
 }
 
-/**
- * Poda por "ilhas isoladas": toda região vazia conectada precisa ter um
- * número de células múltiplo de 5, senão nenhum pentaminó conseguirá
- * preenchê-la e o ramo pode ser abandonado de imediato (flood fill).
- */
 function regioesVaziasSaoViaveis(
   grid: (string | null)[][],
   rows: number,
@@ -112,18 +91,12 @@ interface Instancia {
   shapeId: PentominoId;
 }
 
-/**
- * Encontra uma disposição válida das `pieces` que preencha 100% do tabuleiro
- * `config`. Retorna as peças posicionadas (com `origin` definido) ou `null`
- * quando nenhuma solução é achada dentro do limite de busca.
- */
 export function resolverTabuleiro(
   config: BoardConfig,
   pieces: SolveRequestPiece[],
 ): PlacedPiece[] | null {
   const { rows, cols } = config;
 
-  // Sanidade: área do tabuleiro tem de bater com 5 células por peça.
   if (rows * cols !== pieces.length * 5) return null;
 
   const grid: (string | null)[][] = Array.from({ length: rows }, () =>
@@ -179,7 +152,7 @@ export function resolverTabuleiro(
     if (nos > MAX_NOS) return false;
 
     const vazia = primeiraCelulaVazia();
-    if (!vazia) return true; // tabuleiro cheio: solução encontrada
+    if (!vazia) return true;
     const [row, col] = vazia;
 
     for (let i = 0; i < restantes.length; i++) {
@@ -187,7 +160,6 @@ export function resolverTabuleiro(
       const orientacoes = orientacoesPorShape.get(instancia.shapeId) ?? [];
 
       for (const orientacao of orientacoes) {
-        // ancora cada célula da peça na primeira célula vazia
         for (const [dr, dc] of orientacao.cells) {
           const origemRow = row - dr;
           const origemCol = col - dc;
@@ -220,7 +192,6 @@ export function resolverTabuleiro(
             if (backtrack(proximas)) return true;
           }
 
-          // backtrack: desfaz e tenta a próxima orientação/peça
           placements.pop();
           liberar(orientacao.cells, origemRow, origemCol);
         }

@@ -9,21 +9,9 @@ import type {
   SolverResponse,
 } from "@/lib/workers/solverMessages";
 
-/**
- * Camada de comunicação UI ↔ Web Worker (documento de requisitos, seção 11).
- *
- * Encapsula o ciclo de vida do worker de resolução automática e expõe uma
- * função `solve()` que devolve uma Promise — assim a UI não precisa lidar
- * diretamente com `postMessage`/eventos. O worker é criado uma única vez por
- * componente e encerrado no unmount.
- */
-
 export interface SolveOutcome {
-  /** true quando o worker devolveu uma solução completa. */
   solved: boolean;
-  /** peças posicionadas (origin preenchido) quando `solved`, senão null. */
   placements: PlacedPiece[] | null;
-  /** tempo de execução do algoritmo, em milissegundos. */
   elapsedMs: number;
 }
 
