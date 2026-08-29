@@ -37,6 +37,9 @@ export function Board({
   // ---------------------------------------
 
   const cellColorMap = new Map<string, string>();
+  // Letra do pentaminó em cada célula ocupada — o tabuleiro diferencia as
+  // peças por cor E por letra (RNF06, acessibilidade para daltonismo).
+  const cellLetterMap = new Map<string, string>();
 
   placedPieces.forEach((piece) => {
     if (!piece.origin) return;
@@ -49,6 +52,7 @@ export function Board({
 
     cells.forEach(([row, col]) => {
       cellColorMap.set(`${row}-${col}`, shape.color);
+      cellLetterMap.set(`${row}-${col}`, shape.id);
     });
   });
 
@@ -57,6 +61,7 @@ export function Board({
   // ---------------------------------------
 
   const previewCellMap = new Map<string, string>();
+  const previewLetterMap = new Map<string, string>();
 
   let previewValid = false;
 
@@ -87,6 +92,7 @@ export function Board({
         // dentro do tabuleiro.
         if (row >= 0 && row < config.rows && col >= 0 && col < config.cols) {
           previewCellMap.set(`${row}-${col}`, shape.color);
+          previewLetterMap.set(`${row}-${col}`, shape.id);
         }
       });
     }
@@ -117,13 +123,19 @@ export function Board({
 
           const showPreview = !color && !!previewColor;
 
+          const letter = color
+            ? cellLetterMap.get(key)
+            : showPreview
+              ? previewLetterMap.get(key)
+              : undefined;
+
           return (
             <div
               key={key}
               onMouseEnter={() => setHoveredCell([row, col])}
               onMouseLeave={() => setHoveredCell(null)}
               onClick={() => onCellClick?.(row, col)}
-              className="h-15 w-15 cursor-pointer border border-gray-200 transition-all"
+              className="flex h-15 w-15 cursor-pointer select-none items-center justify-center border border-gray-200 text-lg font-bold text-white transition-all"
               style={{
                 backgroundColor:
                   color ?? (showPreview ? previewColor : "white"),
@@ -134,7 +146,9 @@ export function Board({
                   ? `inset 0 0 0 2px ${previewBorder}`
                   : undefined,
               }}
-            />
+            >
+              {letter}
+            </div>
           );
         }),
       )}
