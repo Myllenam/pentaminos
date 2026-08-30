@@ -1,12 +1,16 @@
 "use client";
 
+import { Check } from "lucide-react";
+
 import { PENTOMINOES } from "@/lib/mocks/pentominos";
 import { PlacedPiece } from "@/lib/types/pentomino";
 import { transformCells } from "@/lib/functions/pentominoGenerator";
+import { cn } from "@/lib/utils";
 
 interface PieceCardProps {
   piece: PlacedPiece;
   selected?: boolean;
+  placed?: boolean;
   onSelect?: () => void;
   onRotate?: () => void;
 }
@@ -14,6 +18,7 @@ interface PieceCardProps {
 export function PieceCard({
   piece,
   selected,
+  placed,
   onSelect,
   onRotate,
 }: PieceCardProps) {
@@ -36,21 +41,28 @@ export function PieceCard({
 
   return (
     <div
-      className={`flex items-center gap-3 w-full p-3 rounded-lg border ${
-        selected
-          ? "border-indigo-500 bg-indigo-50"
-          : "border-gray-200"
-      }`}
+      className={cn(
+        "flex items-center gap-3 w-full p-3 rounded-lg border",
+        placed
+          ? "border-gray-200 bg-gray-50"
+          : selected
+            ? "border-indigo-500 bg-indigo-50"
+            : "border-gray-200",
+      )}
     >
       <button
         type="button"
-        onClick={onSelect}
-        className="flex flex-1 items-center gap-3"
+        onClick={placed ? undefined : onSelect}
+        disabled={placed}
+        className={cn(
+          "flex flex-1 items-center gap-3",
+          placed ? "cursor-default opacity-40" : "cursor-pointer",
+        )}
       >
         <span
           className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-bold"
           style={{
-            backgroundColor: shape.color,
+            backgroundColor: placed ? "#9ca3af" : shape.color,
           }}
         >
           {shape.id}
@@ -78,7 +90,9 @@ export function PieceCard({
                 className="h-2 w-2 rounded-sm"
                 style={{
                   backgroundColor: filled
-                    ? shape.color
+                    ? placed
+                      ? "#9ca3af"
+                      : shape.color
                     : "transparent",
                 }}
               />
@@ -87,14 +101,23 @@ export function PieceCard({
         </div>
       </button>
 
-      <button
-        type="button"
-        onClick={onRotate}
-        className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 text-lg hover:bg-gray-200"
-        aria-label="Girar peça"
-      >
-        ↻
-      </button>
+      {placed ? (
+        <span
+          className="flex h-8 w-8 items-center justify-center rounded-md bg-green-100 text-green-600"
+          aria-label="Peça posicionada"
+        >
+          <Check className="size-4" />
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={onRotate}
+          className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 text-lg hover:bg-gray-200"
+          aria-label="Girar peça"
+        >
+          ↻
+        </button>
+      )}
     </div>
   );
 }

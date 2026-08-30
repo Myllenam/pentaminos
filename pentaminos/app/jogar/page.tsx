@@ -256,11 +256,12 @@ function GamePage() {
               Clique em uma peça para posicioná-la.
             </p>
             <div className="flex flex-col gap-2">
-              {remainingPieces.map((piece) => {
+              {pieces.map((piece) => {
                 return (
                   <PieceCard
                     key={piece.instanceId}
                     piece={piece}
+                    placed={piece.origin !== null}
                     selected={selectedInstanceId === piece.instanceId}
                     onSelect={() => handleSelectPiece(piece.instanceId)}
                     onRotate={() => handleRotatePiece(piece.instanceId)}
