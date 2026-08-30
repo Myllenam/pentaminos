@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { Zap } from "lucide-react";
 
 import { Alert } from "@/components/alert/alert";
 import { Controles } from "@/components/controles/controles";
@@ -21,6 +22,8 @@ import {
   getPreviewOrigin,
   transformCells,
 } from "@/lib/functions/pentominoGenerator";
+import { useSolverWorker } from "@/lib/hooks/useSolverWorker";
+import { Button } from "@/components/ui/button";
 
 function GamePage() {
   const searchParams = useSearchParams();
@@ -38,6 +41,8 @@ function GamePage() {
 
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(true);
+  const [isSolving, setIsSolving] = useState(false);
+  const [solveError, setSolveError] = useState<string | null>(null);
 
   const [board, setBoard] = useState(() => gerarTabuleiro(pieceCount));
   const [pieces, setPieces] = useState<PlacedPiece[]>(
@@ -47,6 +52,9 @@ function GamePage() {
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(
     null,
   );
+  const { solve } = useSolverWorker();
+
+  const hasManualPlacement = pieces.some((piece) => piece.origin !== null);
 
   const [hasFinished, setHasFinished] = useState(false);
   const hasRegisteredGame = useRef(false);
@@ -191,11 +199,6 @@ function GamePage() {
       return;
     }
 
-    // ==========================================
-    // 2. NÃO TEM PEÇA SELECIONADA
-    //    → podemos remover uma existente
-    // ==========================================
-
     const owner = pieces.find((piece) => {
       if (!piece.origin) {
         return false;
@@ -230,12 +233,52 @@ function GamePage() {
     );
   };
 
-  /**
-   * TODO(time): substituir esse botão pela chamada de finishGame()
-   * no momento em que a lógica do tabuleiro detectar que todas as
-   * células foram preenchidas corretamente.
-   */
- 
+  const handleSolve = async () => {
+    if (hasManualPlacement || isSolving) return;
+
+    setIsSolving(true);
+    setSolveError(null);
+
+    try {
+      const outcome = await solve(
+        board.config,
+        pieces.map((piece) => ({
+          instanceId: piece.instanceId,
+          shapeId: piece.shapeId,
+        })),
+      );
+
+      if (outcome.solved && outcome.placements) {
+        setIsRunning(false);
+        setSelectedInstanceId(null);
+        setPieces(outcome.placements);
+
+        if (!hasRegisteredGame.current) {
+          hasRegisteredGame.current = true;
+
+          finishGame({
+            player: "Algoritmo",
+            pieces: pieceCount,
+            elapsedSeconds: outcome.elapsedMs / 1000,
+            autoSolved: true,
+          });
+
+          setRankingOpen(true);
+        }
+      } else {
+        setSolveError(
+          "Não foi possível encontrar uma solução para este tabuleiro.",
+        );
+      }
+    } catch (erro) {
+      setSolveError(
+        erro instanceof Error ? erro.message : "Erro ao resolver o tabuleiro.",
+      );
+    } finally {
+      setIsSolving(false);
+    }
+  };
+
   return (
     <div className="relative flex min-h-screen flex-col  bg-zinc-50">
       <Header
@@ -280,6 +323,27 @@ function GamePage() {
             previewPiece={selectedPiece}
             onCellClick={handleCellClick}
           />
+          <div className="mt-6 w-full max-w-md">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={handleSolve}
+              disabled={hasManualPlacement || isSolving}
+              title={
+                hasManualPlacement
+                  ? "Remova as peças já posicionadas para usar a resolução automática"
+                  : undefined
+              }
+            >
+              <Zap className="text-warning" data-icon="inline-start" />
+              {isSolving ? "Resolvendo..." : "Resolver Automaticamente"}
+            </Button>
+
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              {solveError ??
+                "Verifique o tabuleiro ou use o algoritmo para resolver automaticamente."}
+            </p>
+          </div>
         </section>
 
         <aside className="flex w-[288px] shrink-0 flex-col gap-4 ">
