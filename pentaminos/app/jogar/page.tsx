@@ -54,9 +54,6 @@ function GamePage() {
   );
   const { solve } = useSolverWorker();
 
-  const hasManualPlacement = pieces.some((piece) => piece.origin !== null);
-
-  const [hasFinished, setHasFinished] = useState(false);
   const hasRegisteredGame = useRef(false);
 
   const filledCells = useMemo(
@@ -234,50 +231,61 @@ function GamePage() {
   };
 
   const handleSolve = async () => {
-    if (hasManualPlacement || isSolving) return;
+  if (isSolving) return;
 
-    setIsSolving(true);
-    setSolveError(null);
+  setIsSolving(true);
+  setSolveError(null);
+  setSelectedInstanceId(null);
 
-    try {
-      const outcome = await solve(
-        board.config,
-        pieces.map((piece) => ({
-          instanceId: piece.instanceId,
-          shapeId: piece.shapeId,
-        })),
-      );
+  try {
+    // Limpa todas as peças que estão atualmente no tabuleiro
+    const clearedPieces = pieces.map((piece) => ({
+      ...piece,
+      origin: null,
+    }));
 
-      if (outcome.solved && outcome.placements) {
-        setIsRunning(false);
-        setSelectedInstanceId(null);
-        setPieces(outcome.placements);
+    // Atualiza a interface imediatamente
+    setPieces(clearedPieces);
 
-        if (!hasRegisteredGame.current) {
-          hasRegisteredGame.current = true;
+    const outcome = await solve(
+      board.config,
+      clearedPieces.map((piece) => ({
+        instanceId: piece.instanceId,
+        shapeId: piece.shapeId,
+      })),
+    );
 
-          finishGame({
-            player: "Algoritmo",
-            pieces: pieceCount,
-            elapsedSeconds: outcome.elapsedMs / 1000,
-            autoSolved: true,
-          });
+    if (outcome.solved && outcome.placements) {
+      setIsRunning(false);
+      setPieces(outcome.placements);
 
-          setRankingOpen(true);
-        }
-      } else {
-        setSolveError(
-          "Não foi possível encontrar uma solução para este tabuleiro.",
-        );
+      if (!hasRegisteredGame.current) {
+        hasRegisteredGame.current = true;
+
+        finishGame({
+          player: "Algoritmo",
+          pieces: pieceCount,
+          elapsedSeconds: outcome.elapsedMs / 1000,
+          autoSolved: true,
+        });
+
+        setRankingOpen(true);
       }
-    } catch (erro) {
+    } else {
       setSolveError(
-        erro instanceof Error ? erro.message : "Erro ao resolver o tabuleiro.",
+        "Não foi possível encontrar uma solução para este tabuleiro.",
       );
-    } finally {
-      setIsSolving(false);
     }
-  };
+  } catch (erro) {
+    setSolveError(
+      erro instanceof Error
+        ? erro.message
+        : "Erro ao resolver o tabuleiro.",
+    );
+  } finally {
+    setIsSolving(false);
+  }
+};
 
   return (
     <div className="relative flex min-h-screen flex-col  bg-zinc-50">
@@ -328,12 +336,7 @@ function GamePage() {
               variant="outline"
               size="lg"
               onClick={handleSolve}
-              disabled={hasManualPlacement || isSolving}
-              title={
-                hasManualPlacement
-                  ? "Remova as peças já posicionadas para usar a resolução automática"
-                  : undefined
-              }
+              disabled={isSolving}
             >
               <Zap className="text-warning" data-icon="inline-start" />
               {isSolving ? "Resolvendo..." : "Resolver Automaticamente"}
