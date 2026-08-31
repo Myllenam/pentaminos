@@ -1,7 +1,15 @@
 "use client";
-
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  useSearchParams,
+  useRouter,
+} from "next/navigation";
 import { Zap } from "lucide-react";
 
 import { Alert } from "@/components/alert/alert";
@@ -9,7 +17,10 @@ import { Controles } from "@/components/controles/controles";
 import { Header } from "@/components/header/header";
 import { ComoJogar } from "@/components/como-jogar/como-jogar";
 import { Ranking } from "@/components/ranking/ranking";
-import { finishGame, formatElapsedTime } from "@/lib/ranking";
+import {
+  finishGame,
+  formatElapsedTime,
+} from "@/lib/ranking";
 import { Progresso } from "@/components/progresso/progresso";
 import { PENTOMINOES } from "@/lib/mocks/pentominos";
 import { PlacedPiece } from "@/lib/types/pentomino";
@@ -28,49 +39,88 @@ import { Button } from "@/components/ui/button";
 function GamePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const playerName = searchParams.get("nome") || "Jogador";
+
+  const playerName =
+    searchParams.get("nome") || "Jogador";
+
   const pieceCount = Math.min(
-    Math.max(Number(searchParams.get("pecas")) || 6, 3),
+    Math.max(
+      Number(searchParams.get("pecas")) || 6,
+      3,
+    ),
     12,
   );
-  const totalCells = pieceCount * 5; // cada pentaminó ocupa 5 células
 
-  const [restartOpen, setRestartOpen] = useState(false);
-  const [newGameOpen, setNewGameOpen] = useState(false);
-  const [rankingOpen, setRankingOpen] = useState(false);
+  const totalCells = pieceCount * 5;
 
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [isRunning, setIsRunning] = useState(true);
-  const [isSolving, setIsSolving] = useState(false);
-  const [solveError, setSolveError] = useState<string | null>(null);
+  const [restartOpen, setRestartOpen] =
+    useState(false);
 
-  const [board, setBoard] = useState(() => gerarTabuleiro(pieceCount));
-  const [pieces, setPieces] = useState<PlacedPiece[]>(
-    () => board.availablePieces,
+  const [newGameOpen, setNewGameOpen] =
+    useState(false);
+
+  const [rankingOpen, setRankingOpen] =
+    useState(false);
+
+  const [elapsedSeconds, setElapsedSeconds] =
+    useState(0);
+
+  const [moveCount, setMoveCount] =
+    useState(0);
+
+  const [isRunning, setIsRunning] =
+    useState(true);
+
+  const [isSolving, setIsSolving] =
+    useState(false);
+
+  const [solveError, setSolveError] =
+    useState<string | null>(null);
+
+  const [board] = useState(() =>
+    gerarTabuleiro(pieceCount),
   );
 
-  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(
-    null,
-  );
+  const [pieces, setPieces] = useState<
+    PlacedPiece[]
+  >(() => board.availablePieces);
+
+  const [
+    selectedInstanceId,
+    setSelectedInstanceId,
+  ] = useState<string | null>(null);
+
   const { solve } = useSolverWorker();
 
   const hasRegisteredGame = useRef(false);
 
   const filledCells = useMemo(
-    () => pieces.filter((p) => p.origin !== null).length * 5,
+    () =>
+      pieces.filter(
+        (piece) => piece.origin !== null,
+      ).length * 5,
     [pieces],
   );
 
-  const remainingPieces = pieces.filter((p) => p.origin === null);
+  const remainingPieces = pieces.filter(
+    (piece) => piece.origin === null,
+  );
 
   const selectedPiece =
-    pieces.find((piece) => piece.instanceId === selectedInstanceId) ?? null;
+    pieces.find(
+      (piece) =>
+        piece.instanceId === selectedInstanceId,
+    ) ?? null;
 
   useEffect(() => {
-    if (!isRunning) return;
+    if (!isRunning) {
+      return;
+    }
 
     const interval = setInterval(() => {
-      setElapsedSeconds((current) => current + 1);
+      setElapsedSeconds(
+        (current) => current + 1,
+      );
     }, 1000);
 
     return () => clearInterval(interval);
@@ -80,22 +130,38 @@ function GamePage() {
     hasRegisteredGame.current = false;
 
     setElapsedSeconds(0);
+    setMoveCount(0);
     setIsRunning(true);
+    setSolveError(null);
+
     setPieces(
-      board.availablePieces.map((piece) => ({ ...piece, origin: null })),
+      board.availablePieces.map((piece) => ({
+        ...piece,
+        origin: null,
+      })),
     );
+
     setSelectedInstanceId(null);
   };
 
-  const handleSelectPiece = (instanceId: string) => {
+  const handleSelectPiece = (
+    instanceId: string,
+  ) => {
     setSelectedInstanceId((current) =>
-      current === instanceId ? null : instanceId,
+      current === instanceId
+        ? null
+        : instanceId,
     );
   };
-  const handleRotatePiece = (instanceId: string) => {
+
+  const handleRotatePiece = (
+    instanceId: string,
+  ) => {
     setPieces((current) =>
       current.map((piece) => {
-        if (piece.instanceId !== instanceId) {
+        if (
+          piece.instanceId !== instanceId
+        ) {
           return piece;
         }
 
@@ -116,35 +182,50 @@ function GamePage() {
     );
   };
 
-  // clique numa célula do board: remove peça se já ocupada, senão posiciona a selecionada
-  const handleCellClick = (row: number, col: number) => {
+  const handleCellClick = (
+    row: number,
+    col: number,
+  ) => {
     // ==========================================
-    // 1. TEMOS UMA PEÇA SELECIONADA?
+    // 1. TEMOS UMA PEÇA SELECIONADA
     // ==========================================
 
     if (selectedInstanceId) {
       const selectedPiece = pieces.find(
-        (piece) => piece.instanceId === selectedInstanceId,
+        (piece) =>
+          piece.instanceId ===
+          selectedInstanceId,
       );
 
       if (!selectedPiece) {
         return;
       }
 
-      const shape = PENTOMINOES.find((s) => s.id === selectedPiece.shapeId);
+      const shape = PENTOMINOES.find(
+        (pentomino) =>
+          pentomino.id ===
+          selectedPiece.shapeId,
+      );
 
       if (!shape) {
         return;
       }
 
-      const clickedCell: [number, number] = [row, col];
+      const clickedCell: [
+        number,
+        number,
+      ] = [row, col];
 
-      const transformedCells = transformCells(
-        shape.cells,
-        selectedPiece.rotation,
+      const transformedCells =
+        transformCells(
+          shape.cells,
+          selectedPiece.rotation,
+        );
+
+      const origin = getPreviewOrigin(
+        transformedCells,
+        clickedCell,
       );
-
-      const origin = getPreviewOrigin(transformedCells, clickedCell);
 
       const canPlace = canPlacePiece(
         shape,
@@ -155,32 +236,49 @@ function GamePage() {
         selectedPiece.instanceId,
       );
 
+      // Tentativa inválida não conta movimento.
       if (!canPlace) {
         return;
       }
 
+      // A peça foi efetivamente colocada.
+      // Portanto, temos +1 movimento.
+      const nextMoveCount =
+        moveCount + 1;
+
+      setMoveCount(nextMoveCount);
+
       setPieces((current) => {
-        const updatedPieces = current.map((piece) =>
-          piece.instanceId === selectedInstanceId
-            ? {
-                ...piece,
-                origin,
-              }
-            : piece,
-        );
+        const updatedPieces =
+          current.map((piece) =>
+            piece.instanceId ===
+            selectedInstanceId
+              ? {
+                  ...piece,
+                  origin,
+                }
+              : piece,
+          );
 
-        // Verifica se todas as peças foram colocadas
-        const isFinished = updatedPieces.every(
-          (piece) => piece.origin !== null,
-        );
+        const isFinished =
+          updatedPieces.every(
+            (piece) =>
+              piece.origin !== null,
+          );
 
-        // Registra a partida apenas uma vez
-        if (isFinished && !hasRegisteredGame.current) {
-          hasRegisteredGame.current = true;
+        // Apenas partidas resolvidas
+        // manualmente entram no ranking.
+        if (
+          isFinished &&
+          !hasRegisteredGame.current
+        ) {
+          hasRegisteredGame.current =
+            true;
 
           finishGame({
             player: playerName,
             pieces: pieceCount,
+            moves: nextMoveCount,
             elapsedSeconds,
           });
 
@@ -196,31 +294,49 @@ function GamePage() {
       return;
     }
 
-    const owner = pieces.find((piece) => {
-      if (!piece.origin) {
-        return false;
-      }
+    const owner = pieces.find(
+      (piece) => {
+        if (!piece.origin) {
+          return false;
+        }
 
-      const shape = PENTOMINOES.find((s) => s.id === piece.shapeId);
+        const shape =
+          PENTOMINOES.find(
+            (pentomino) =>
+              pentomino.id ===
+              piece.shapeId,
+          );
 
-      if (!shape) {
-        return false;
-      }
+        if (!shape) {
+          return false;
+        }
 
-      const cells = getPieceCells(shape, piece.rotation, piece.origin);
+        const cells = getPieceCells(
+          shape,
+          piece.rotation,
+          piece.origin,
+        );
 
-      return cells.some(
-        ([cellRow, cellCol]) => cellRow === row && cellCol === col,
-      );
-    });
+        return cells.some(
+          ([cellRow, cellCol]) =>
+            cellRow === row &&
+            cellCol === col,
+        );
+      },
+    );
 
     if (!owner) {
       return;
     }
 
+    setMoveCount(
+      (current) => current + 1,
+    );
+
     setPieces((current) =>
       current.map((piece) =>
-        piece.instanceId === owner.instanceId
+        piece.instanceId ===
+        owner.instanceId
           ? {
               ...piece,
               origin: null,
@@ -231,94 +347,123 @@ function GamePage() {
   };
 
   const handleSolve = async () => {
-  if (isSolving) return;
-
-  setIsSolving(true);
-  setSolveError(null);
-  setSelectedInstanceId(null);
-
-  try {
-    // Limpa todas as peças que estão atualmente no tabuleiro
-    const clearedPieces = pieces.map((piece) => ({
-      ...piece,
-      origin: null,
-    }));
-
-    // Atualiza a interface imediatamente
-    setPieces(clearedPieces);
-
-    const outcome = await solve(
-      board.config,
-      clearedPieces.map((piece) => ({
-        instanceId: piece.instanceId,
-        shapeId: piece.shapeId,
-      })),
-    );
-
-    if (outcome.solved && outcome.placements) {
-      setIsRunning(false);
-      setPieces(outcome.placements);
-
-      if (!hasRegisteredGame.current) {
-        hasRegisteredGame.current = true;
-
-        finishGame({
-          player: "Algoritmo",
-          pieces: pieceCount,
-          elapsedSeconds: outcome.elapsedMs / 1000,
-          autoSolved: true,
-        });
-
-        setRankingOpen(true);
-      }
-    } else {
-      setSolveError(
-        "Não foi possível encontrar uma solução para este tabuleiro.",
-      );
+    if (isSolving) {
+      return;
     }
-  } catch (erro) {
-    setSolveError(
-      erro instanceof Error
-        ? erro.message
-        : "Erro ao resolver o tabuleiro.",
-    );
-  } finally {
-    setIsSolving(false);
-  }
-};
+
+    setIsSolving(true);
+    setSolveError(null);
+    setSelectedInstanceId(null);
+
+    try {
+      // Limpa as peças colocadas pelo usuário
+      // antes de enviar o problema ao solver.
+      const clearedPieces = pieces.map(
+        (piece) => ({
+          ...piece,
+          origin: null,
+        }),
+      );
+
+      setPieces(clearedPieces);
+
+      const outcome = await solve(
+        board.config,
+        clearedPieces.map(
+          (piece) => ({
+            instanceId:
+              piece.instanceId,
+            shapeId: piece.shapeId,
+          }),
+        ),
+      );
+
+      if (
+        outcome.solved &&
+        outcome.placements
+      ) {
+        setIsRunning(false);
+
+        setPieces(
+          outcome.placements,
+        );
+
+        hasRegisteredGame.current =
+          true;
+      } else {
+        setSolveError(
+          "Não foi possível encontrar uma solução para este tabuleiro.",
+        );
+      }
+    } catch (erro) {
+      setSolveError(
+        erro instanceof Error
+          ? erro.message
+          : "Erro ao resolver o tabuleiro.",
+      );
+    } finally {
+      setIsSolving(false);
+    }
+  };
 
   return (
-    <div className="relative flex min-h-screen flex-col  bg-zinc-50">
+    <div className="relative flex min-h-screen flex-col bg-zinc-50">
       <Header
         playerName={playerName}
-        time={formatElapsedTime(elapsedSeconds)}
+        time={formatElapsedTime(
+          elapsedSeconds,
+        )}
+        moves={moveCount}
         filledCells={filledCells}
         totalCells={totalCells}
-        onRestart={() => setRestartOpen(true)}
-        onNewGame={() => setNewGameOpen(true)}
-        onOpenRanking={() => setRankingOpen(true)}
+        onRestart={() =>
+          setRestartOpen(true)
+        }
+        onNewGame={() =>
+          setNewGameOpen(true)
+        }
+        onOpenRanking={() =>
+          setRankingOpen(true)
+        }
       />
 
       <main className="mx-auto flex w-full flex-1 flex-row gap-8 px-8 py-12">
         <aside className="w-1/4">
           <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="text-sm font-semibold text-foreground">SUAS PEÇAS</p>
+            <p className="text-sm font-semibold text-foreground">
+              SUAS PEÇAS
+            </p>
+
             <p className="mb-3 text-xs text-muted-foreground">
               Clique em uma peça para posicioná-la.
             </p>
+
             <div className="flex flex-col gap-2">
-              {pieces.map((piece) => {
-                return (
-                  <PieceCard
-                    key={piece.instanceId}
-                    piece={piece}
-                    placed={piece.origin !== null}
-                    selected={selectedInstanceId === piece.instanceId}
-                    onSelect={() => handleSelectPiece(piece.instanceId)}
-                    onRotate={() => handleRotatePiece(piece.instanceId)}
-                  />
-                );
-              })}
+              {pieces.map((piece) => (
+                <PieceCard
+                  key={
+                    piece.instanceId
+                  }
+                  piece={piece}
+                  placed={
+                    piece.origin !== null
+                  }
+                  selected={
+                    selectedInstanceId ===
+                    piece.instanceId
+                  }
+                  onSelect={() =>
+                    handleSelectPiece(
+                      piece.instanceId,
+                    )
+                  }
+                  onRotate={() =>
+                    handleRotatePiece(
+                      piece.instanceId,
+                    )
+                  }
+                />
+              ))}
             </div>
           </div>
         </aside>
@@ -328,9 +473,14 @@ function GamePage() {
             config={board.config}
             placedPieces={pieces}
             shapes={PENTOMINOES}
-            previewPiece={selectedPiece}
-            onCellClick={handleCellClick}
+            previewPiece={
+              selectedPiece
+            }
+            onCellClick={
+              handleCellClick
+            }
           />
+
           <div className="mt-6 w-full max-w-md">
             <Button
               variant="outline"
@@ -338,8 +488,14 @@ function GamePage() {
               onClick={handleSolve}
               disabled={isSolving}
             >
-              <Zap className="text-warning" data-icon="inline-start" />
-              {isSolving ? "Resolvendo..." : "Resolver Automaticamente"}
+              <Zap
+                className="text-warning"
+                data-icon="inline-start"
+              />
+
+              {isSolving
+                ? "Resolvendo..."
+                : "Resolver Automaticamente"}
             </Button>
 
             <p className="mt-2 text-center text-xs text-muted-foreground">
@@ -349,22 +505,36 @@ function GamePage() {
           </div>
         </section>
 
-        <aside className="flex w-[288px] shrink-0 flex-col gap-4 ">
+        <aside className="flex w-[288px] shrink-0 flex-col gap-4">
           <Progresso
-            celulasPreenchidas={filledCells}
-            totalCelulas={totalCells}
-            pecasRestantes={remainingPieces.length}
+            celulasPreenchidas={
+              filledCells
+            }
+            totalCelulas={
+              totalCells
+            }
+            pecasRestantes={
+              remainingPieces.length
+            }
           />
 
           <ComoJogar />
 
-          <Controles onInfoClick={() => console.log("abrir detalhes")} />
+          <Controles
+            onInfoClick={() =>
+              console.log(
+                "abrir detalhes",
+              )
+            }
+          />
         </aside>
       </main>
 
       <Alert
         open={restartOpen}
-        onOpenChange={setRestartOpen}
+        onOpenChange={
+          setRestartOpen
+        }
         title="Reiniciar partida?"
         description="Tem certeza que deseja reiniciar a partida? Todo o progresso atual será perdido."
         confirmLabel="Reiniciar"
@@ -374,14 +544,23 @@ function GamePage() {
 
       <Alert
         open={newGameOpen}
-        onOpenChange={setNewGameOpen}
+        onOpenChange={
+          setNewGameOpen
+        }
         title="Iniciar novo jogo?"
         description="Deseja abandonar a partida atual e iniciar um novo jogo? O progresso atual será perdido."
         confirmLabel="Novo Jogo"
-        onConfirm={() => router.push("/")}
+        onConfirm={() =>
+          router.push("/")
+        }
       />
 
-      <Ranking open={rankingOpen} onOpenChange={setRankingOpen} />
+      <Ranking
+        open={rankingOpen}
+        onOpenChange={
+          setRankingOpen
+        }
+      />
     </div>
   );
 }

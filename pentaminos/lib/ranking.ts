@@ -3,6 +3,7 @@ export interface RankingEntry {
   player: string;
   time: string;
   pieces: number;
+  moves?: number;
   date: string;
   autoSolved?: boolean;
 }
@@ -35,7 +36,22 @@ export function getRanking(): RankingEntry[] {
   try {
     const ranking = JSON.parse(raw) as RankingEntry[];
 
-    return sortRanking(ranking);
+    // Remove resultados antigos que tenham sido
+    // registrados pelo algoritmo.
+    const manualRanking = ranking.filter(
+      (entry) => !entry.autoSolved,
+    );
+
+    // Atualiza o localStorage caso existam
+    // resultados automáticos antigos.
+    if (manualRanking.length !== ranking.length) {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(manualRanking),
+      );
+    }
+
+    return sortRanking(manualRanking);
   } catch {
     return [];
   }
@@ -45,6 +61,12 @@ export function saveRankingEntry(
   entry: Omit<RankingEntry, "id">,
 ): RankingEntry[] {
   const currentRanking = getRanking();
+
+  // Segurança extra:
+  // soluções automáticas nunca entram no ranking.
+  if (entry.autoSolved) {
+    return currentRanking;
+  }
 
   const newEntry: RankingEntry = {
     ...entry,
@@ -101,21 +123,21 @@ export function formatToday(): string {
 export interface FinishGameParams {
   player: string;
   pieces: number;
+  moves: number;
   elapsedSeconds: number;
-  autoSolved?: boolean;
 }
 
 export function finishGame({
   player,
   pieces,
+  moves,
   elapsedSeconds,
-  autoSolved,
 }: FinishGameParams): RankingEntry[] {
   return saveRankingEntry({
     player: player.trim() || "Jogador",
     time: formatElapsedTime(elapsedSeconds),
     pieces,
+    moves,
     date: formatToday(),
-    autoSolved,
   });
 }
