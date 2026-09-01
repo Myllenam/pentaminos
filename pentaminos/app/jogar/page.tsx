@@ -42,6 +42,7 @@ function GamePage() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(true);
   const [isSolving, setIsSolving] = useState(false);
+  const [autoSolved, setAutoSolved] = useState(false);
   const [solveError, setSolveError] = useState<string | null>(null);
 
   const [board, setBoard] = useState(() => gerarTabuleiro(pieceCount));
@@ -77,6 +78,8 @@ function GamePage() {
   }, [isRunning]);
 
   const handleRestart = () => {
+    if (autoSolved) return;
+
     hasRegisteredGame.current = false;
 
     setElapsedSeconds(0);
@@ -257,6 +260,7 @@ function GamePage() {
 
     if (outcome.solved && outcome.placements) {
       setIsRunning(false);
+      setAutoSolved(true);
       setPieces(outcome.placements);
 
       if (!hasRegisteredGame.current) {
@@ -297,6 +301,7 @@ function GamePage() {
         onRestart={() => setRestartOpen(true)}
         onNewGame={() => setNewGameOpen(true)}
         onOpenRanking={() => setRankingOpen(true)}
+        restartDisabled={autoSolved}
       />
 
       <main className="mx-auto flex w-full flex-1 flex-row gap-8 px-8 py-12">

@@ -11,6 +11,7 @@ export interface HeaderProps {
   onOpenRanking?: () => void;
   onRestart?: () => void;
   onNewGame?: () => void;
+  restartDisabled?: boolean;
 }
 
 const HEADER_MOCK_DATA: HeaderProps = {
@@ -28,6 +29,7 @@ export function Header({
   onOpenRanking,
   onRestart,
   onNewGame,
+  restartDisabled = false,
 }: Partial<HeaderProps>) {
   return (
     <header className="flex w-full items-center justify-between gap-4 border-b border-border bg-white px-6 py-3">
@@ -81,6 +83,12 @@ export function Header({
           className="w-auto"
           data-icon="inline-start"
           onClick={onRestart}
+          disabled={restartDisabled}
+          title={
+            restartDisabled
+              ? "Reiniciar indisponível após a resolução automática"
+              : undefined
+          }
         >
           <RotateCcw data-icon="inline-start" />
           Reiniciar
