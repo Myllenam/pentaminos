@@ -1,4 +1,5 @@
 "use client";
+
 import {
   Suspense,
   useEffect,
@@ -7,25 +8,21 @@ import {
   useState,
 } from "react";
 import {
-  useSearchParams,
   useRouter,
+  useSearchParams,
 } from "next/navigation";
 import { Zap } from "lucide-react";
 
 import { Alert } from "@/components/alert/alert";
+import { Board } from "@/components/board/board";
+import { ComoJogar } from "@/components/como-jogar/como-jogar";
 import { Controles } from "@/components/controles/controles";
 import { Header } from "@/components/header/header";
-import { ComoJogar } from "@/components/como-jogar/como-jogar";
-import { Ranking } from "@/components/ranking/ranking";
-import {
-  finishGame,
-  formatElapsedTime,
-} from "@/lib/ranking";
-import { Progresso } from "@/components/progresso/progresso";
-import { PENTOMINOES } from "@/lib/mocks/pentominos";
-import { PlacedPiece } from "@/lib/types/pentomino";
 import { PieceCard } from "@/components/pieceCard/pieceCard";
-import { Board } from "@/components/board/board";
+import { Progresso } from "@/components/progresso/progresso";
+import { Ranking } from "@/components/ranking/ranking";
+import { Button } from "@/components/ui/button";
+
 import {
   canPlacePiece,
   gerarTabuleiro,
@@ -34,7 +31,12 @@ import {
   transformCells,
 } from "@/lib/functions/pentominoGenerator";
 import { useSolverWorker } from "@/lib/hooks/useSolverWorker";
-import { Button } from "@/components/ui/button";
+import { PENTOMINOES } from "@/lib/mocks/pentominos";
+import {
+  finishGame,
+  formatElapsedTime,
+} from "@/lib/ranking";
+import { PlacedPiece } from "@/lib/types/pentomino";
 
 function GamePage() {
   const searchParams = useSearchParams();
@@ -62,11 +64,6 @@ function GamePage() {
   const [rankingOpen, setRankingOpen] =
     useState(false);
 
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [isRunning, setIsRunning] = useState(true);
-  const [isSolving, setIsSolving] = useState(false);
-  const [autoSolved, setAutoSolved] = useState(false);
-  const [solveError, setSolveError] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] =
     useState(0);
 
@@ -77,6 +74,9 @@ function GamePage() {
     useState(true);
 
   const [isSolving, setIsSolving] =
+    useState(false);
+
+  const [autoSolved, setAutoSolved] =
     useState(false);
 
   const [solveError, setSolveError] =
@@ -114,7 +114,8 @@ function GamePage() {
   const selectedPiece =
     pieces.find(
       (piece) =>
-        piece.instanceId === selectedInstanceId,
+        piece.instanceId ===
+        selectedInstanceId,
     ) ?? null;
 
   useEffect(() => {
@@ -129,10 +130,14 @@ function GamePage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRunning]);
+  }, [isRunning, setElapsedSeconds]);
 
   const handleRestart = () => {
-    if (autoSolved) return;
+    // Depois que o algoritmo resolve,
+    // não permitimos reiniciar a partida.
+    if (autoSolved) {
+      return;
+    }
 
     hasRegisteredGame.current = false;
 
@@ -194,7 +199,7 @@ function GamePage() {
     col: number,
   ) => {
     // ==========================================
-    // 1. TEMOS UMA PEÇA SELECIONADA
+    // 1. COLOCAR UMA PEÇA
     // ==========================================
 
     if (selectedInstanceId) {
@@ -243,13 +248,12 @@ function GamePage() {
         selectedPiece.instanceId,
       );
 
-      // Tentativa inválida não conta movimento.
+      // Tentativa inválida não conta.
       if (!canPlace) {
         return;
       }
 
-      // A peça foi efetivamente colocada.
-      // Portanto, temos +1 movimento.
+      // Colocar uma peça conta +1 movimento.
       const nextMoveCount =
         moveCount + 1;
 
@@ -273,8 +277,8 @@ function GamePage() {
               piece.origin !== null,
           );
 
-        // Apenas partidas resolvidas
-        // manualmente entram no ranking.
+        // Apenas uma solução feita manualmente
+        // entra no ranking.
         if (
           isFinished &&
           !hasRegisteredGame.current
@@ -300,6 +304,10 @@ function GamePage() {
 
       return;
     }
+
+    // ==========================================
+    // 2. RETIRAR UMA PEÇA
+    // ==========================================
 
     const owner = pieces.find(
       (piece) => {
@@ -332,10 +340,12 @@ function GamePage() {
       },
     );
 
+    // Célula vazia não conta movimento.
     if (!owner) {
       return;
     }
 
+    // Retirar uma peça conta +1.
     setMoveCount(
       (current) => current + 1,
     );
@@ -363,8 +373,8 @@ function GamePage() {
     setSelectedInstanceId(null);
 
     try {
-      // Limpa as peças colocadas pelo usuário
-      // antes de enviar o problema ao solver.
+      // O solver começa com todas as peças
+      // fora do tabuleiro.
       const clearedPieces = pieces.map(
         (piece) => ({
           ...piece,
@@ -385,38 +395,40 @@ function GamePage() {
         ),
       );
 
-    if (outcome.solved && outcome.placements) {
-      setIsRunning(false);
-      setAutoSolved(true);
-      setPieces(outcome.placements);
+      if (
+        outcome.solved &&
+        outcome.placements
+      ) {
+        setIsRunning(false);
+        setAutoSolved(true);
 
-      if (!hasRegisteredGame.current) {
-        hasRegisteredGame.current = true;
+        setPieces(
+          outcome.placements,
+        );
 
-        finishGame({
-          player: "Algoritmo",
-          pieces: pieceCount,
-          elapsedSeconds: outcome.elapsedMs / 1000,
-          autoSolved: true,
-        });
-
-        setRankingOpen(true);
+        // Marca a partida como concluída
+        // para impedir qualquer registro
+        // posterior no ranking.
+        //
+        // IMPORTANTE:
+        // não chamamos finishGame aqui.
+        hasRegisteredGame.current =
+          true;
+      } else {
+        setSolveError(
+          "Não foi possível encontrar uma solução para este tabuleiro.",
+        );
       }
-    } else {
+    } catch (erro) {
       setSolveError(
-        "Não foi possível encontrar uma solução para este tabuleiro.",
+        erro instanceof Error
+          ? erro.message
+          : "Erro ao resolver o tabuleiro.",
       );
+    } finally {
+      setIsSolving(false);
     }
-  } catch (erro) {
-    setSolveError(
-      erro instanceof Error
-        ? erro.message
-        : "Erro ao resolver o tabuleiro.",
-    );
-  } finally {
-    setIsSolving(false);
-  }
-};
+  };
 
   return (
     <div className="relative flex min-h-screen flex-col bg-zinc-50">
@@ -428,9 +440,15 @@ function GamePage() {
         moves={moveCount}
         filledCells={filledCells}
         totalCells={totalCells}
-        onRestart={() => setRestartOpen(true)}
-        onNewGame={() => setNewGameOpen(true)}
-        onOpenRanking={() => setRankingOpen(true)}
+        onRestart={() =>
+          setRestartOpen(true)
+        }
+        onNewGame={() =>
+          setNewGameOpen(true)
+        }
+        onOpenRanking={() =>
+          setRankingOpen(true)
+        }
         restartDisabled={autoSolved}
       />
 
@@ -448,9 +466,7 @@ function GamePage() {
             <div className="flex flex-col gap-2">
               {pieces.map((piece) => (
                 <PieceCard
-                  key={
-                    piece.instanceId
-                  }
+                  key={piece.instanceId}
                   piece={piece}
                   placed={
                     piece.origin !== null
@@ -567,6 +583,7 @@ function GamePage() {
         onOpenChange={
           setRankingOpen
         }
+        pieceCount={pieceCount}
       />
     </div>
   );

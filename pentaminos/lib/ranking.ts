@@ -8,6 +8,13 @@ export interface RankingEntry {
   autoSolved?: boolean;
 }
 
+export type RankingSort = "time" | "moves";
+
+interface GetRankingOptions {
+  pieces?: number;
+  sortBy?: RankingSort;
+}
+
 const STORAGE_KEY = "pentaminos:ranking";
 
 function timeToSeconds(time: string): number {
@@ -16,42 +23,95 @@ function timeToSeconds(time: string): number {
   return (minutes || 0) * 60 + (seconds || 0);
 }
 
-function sortRanking(entries: RankingEntry[]): RankingEntry[] {
-  return [...entries].sort(
-    (a, b) => timeToSeconds(a.time) - timeToSeconds(b.time),
-  );
+function sortRanking(
+  entries: RankingEntry[],
+  sortBy: RankingSort = "time",
+): RankingEntry[] {
+  return [...entries].sort((a, b) => {
+    const aTime = timeToSeconds(a.time);
+    const bTime = timeToSeconds(b.time);
+
+    const aMoves =
+      a.moves ?? Number.MAX_SAFE_INTEGER;
+
+    const bMoves =
+      b.moves ?? Number.MAX_SAFE_INTEGER;
+
+    if (sortBy === "moves") {
+      if (aMoves !== bMoves) {
+        return aMoves - bMoves;
+      }
+
+      // Em caso de empate nos movimentos,
+      // o menor tempo fica primeiro.
+      return aTime - bTime;
+    }
+
+    if (aTime !== bTime) {
+      return aTime - bTime;
+    }
+
+    // Em caso de empate no tempo,
+    // quem fez menos movimentos fica primeiro.
+    return aMoves - bMoves;
+  });
 }
 
-export function getRanking(): RankingEntry[] {
+export function getRanking(
+  options: GetRankingOptions = {},
+): RankingEntry[] {
   if (typeof window === "undefined") {
     return [];
   }
 
-  const raw = window.localStorage.getItem(STORAGE_KEY);
+  const {
+    pieces,
+    sortBy = "time",
+  } = options;
+
+  const raw =
+    window.localStorage.getItem(STORAGE_KEY);
 
   if (!raw) {
     return [];
   }
 
   try {
-    const ranking = JSON.parse(raw) as RankingEntry[];
+    const ranking =
+      JSON.parse(raw) as RankingEntry[];
 
-    // Remove resultados antigos que tenham sido
-    // registrados pelo algoritmo.
+    // Remove resultados antigos
+    // gerados automaticamente.
     const manualRanking = ranking.filter(
       (entry) => !entry.autoSolved,
     );
 
-    // Atualiza o localStorage caso existam
-    // resultados automáticos antigos.
-    if (manualRanking.length !== ranking.length) {
+    // Atualiza o localStorage caso ainda
+    // existam resultados automáticos antigos.
+    if (
+      manualRanking.length !==
+      ranking.length
+    ) {
       window.localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify(manualRanking),
       );
     }
 
-    return sortRanking(manualRanking);
+    // Se uma quantidade de peças foi informada,
+    // mostra somente aquela categoria.
+    const filteredRanking =
+      pieces === undefined
+        ? manualRanking
+        : manualRanking.filter(
+            (entry) =>
+              entry.pieces === pieces,
+          );
+
+    return sortRanking(
+      filteredRanking,
+      sortBy,
+    );
   } catch {
     return [];
   }
@@ -63,7 +123,8 @@ export function saveRankingEntry(
   const currentRanking = getRanking();
 
   // Segurança extra:
-  // soluções automáticas nunca entram no ranking.
+  // soluções automáticas nunca entram
+  // no ranking.
   if (entry.autoSolved) {
     return currentRanking;
   }
@@ -91,10 +152,14 @@ export function clearRanking(): void {
     return;
   }
 
-  window.localStorage.removeItem(STORAGE_KEY);
+  window.localStorage.removeItem(
+    STORAGE_KEY,
+  );
 }
 
-export function formatElapsedTime(totalSeconds: number): string {
+export function formatElapsedTime(
+  totalSeconds: number,
+): string {
   const safeSeconds = Math.max(
     0,
     Math.floor(totalSeconds),
@@ -114,8 +179,13 @@ export function formatElapsedTime(totalSeconds: number): string {
 export function formatToday(): string {
   const now = new Date();
 
-  const day = String(now.getDate()).padStart(2, "0");
-  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(
+    now.getDate(),
+  ).padStart(2, "0");
+
+  const month = String(
+    now.getMonth() + 1,
+  ).padStart(2, "0");
 
   return `${day}/${month}`;
 }
@@ -134,8 +204,11 @@ export function finishGame({
   elapsedSeconds,
 }: FinishGameParams): RankingEntry[] {
   return saveRankingEntry({
-    player: player.trim() || "Jogador",
-    time: formatElapsedTime(elapsedSeconds),
+    player:
+      player.trim() || "Jogador",
+    time: formatElapsedTime(
+      elapsedSeconds,
+    ),
     pieces,
     moves,
     date: formatToday(),

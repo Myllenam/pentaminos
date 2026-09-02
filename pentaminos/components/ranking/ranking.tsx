@@ -1,7 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Trash2, Trophy } from "lucide-react";
+import { useState } from "react";
+import {
+  Trash2,
+  Trophy,
+} from "lucide-react";
 
 import {
   Dialog,
@@ -16,29 +19,36 @@ import { cn } from "@/lib/utils";
 import {
   clearRanking,
   getRanking,
+  type RankingSort,
 } from "@/lib/ranking";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
 export interface RankingProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange: (
+    open: boolean,
+  ) => void;
+  pieceCount: number;
 }
 
 export function Ranking({
   open,
   onOpenChange,
+  pieceCount,
 }: RankingProps) {
-  const [refreshVersion, setRefreshVersion] =
+  const [sortBy, setSortBy] =
+    useState<RankingSort>("time");
+
+  const [, setRefreshVersion] =
     useState(0);
 
-  const entries = useMemo(() => {
-    if (!open) {
-      return [];
-    }
-
-    return getRanking();
-  }, [open, refreshVersion]);
+  const entries = open
+    ? getRanking({
+        pieces: pieceCount,
+        sortBy,
+      })
+    : [];
 
   const handleClear = () => {
     clearRanking();
@@ -66,7 +76,8 @@ export function Ranking({
               </DialogTitle>
 
               <DialogDescription>
-                Melhores tempos registrados
+                Melhores resultados com{" "}
+                {pieceCount} peças
               </DialogDescription>
             </div>
 
@@ -82,6 +93,46 @@ export function Ranking({
             </Button>
           </div>
         </DialogHeader>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Ordenar por
+          </span>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={
+                sortBy === "time"
+                  ? "default"
+                  : "outline"
+              }
+              className="w-auto"
+              onClick={() =>
+                setSortBy("time")
+              }
+            >
+              Tempo
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              variant={
+                sortBy === "moves"
+                  ? "default"
+                  : "outline"
+              }
+              className="w-auto"
+              onClick={() =>
+                setSortBy("moves")
+              }
+            >
+              Movimentos
+            </Button>
+          </div>
+        </div>
 
         <div className="overflow-hidden rounded-xl border border-border">
           <table className="w-full border-collapse text-sm">
@@ -120,7 +171,9 @@ export function Ranking({
                     colSpan={6}
                     className="px-4 py-8 text-center text-sm text-muted-foreground"
                   >
-                    Nenhum resultado registrado ainda.
+                    Nenhum resultado
+                    registrado com{" "}
+                    {pieceCount} peças.
                   </td>
                 </tr>
               )}
@@ -156,11 +209,25 @@ export function Ranking({
                       </span>
                     </td>
 
-                    <td className="px-4 py-3 align-top font-cousine font-bold text-primary">
+                    <td
+                      className={cn(
+                        "px-4 py-3 align-top font-cousine font-bold",
+                        sortBy === "time"
+                          ? "text-primary"
+                          : "text-foreground",
+                      )}
+                    >
                       {entry.time}
                     </td>
 
-                    <td className="px-4 py-3 align-top font-cousine font-semibold text-foreground">
+                    <td
+                      className={cn(
+                        "px-4 py-3 align-top font-cousine font-semibold",
+                        sortBy === "moves"
+                          ? "text-primary"
+                          : "text-foreground",
+                      )}
+                    >
                       {entry.moves ?? "—"}
                     </td>
 

@@ -93,7 +93,11 @@ export function GameSetup() {
         As peças são sorteadas aleatoriamente entre os 12 pentaminós clássicos.
       </p>
 
-      <Ranking open={rankingOpen} onOpenChange={setRankingOpen} />
+      <Ranking
+  open={rankingOpen}
+  onOpenChange={setRankingOpen}
+  pieceCount={pieceCount}
+/>
     </div>
   );
 }
