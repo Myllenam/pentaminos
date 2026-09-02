@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 export interface HeaderProps {
   playerName: string;
   time: string;
+  moves: number;
   filledCells: number;
   totalCells: number;
   onOpenRanking?: () => void;
@@ -17,6 +18,7 @@ export interface HeaderProps {
 const HEADER_MOCK_DATA: HeaderProps = {
   playerName: "artur",
   time: "00:55",
+  moves: 0,
   filledCells: 0,
   totalCells: 30,
 };
@@ -24,6 +26,7 @@ const HEADER_MOCK_DATA: HeaderProps = {
 export function Header({
   playerName = HEADER_MOCK_DATA.playerName,
   time = HEADER_MOCK_DATA.time,
+  moves = HEADER_MOCK_DATA.moves,
   filledCells = HEADER_MOCK_DATA.filledCells,
   totalCells = HEADER_MOCK_DATA.totalCells,
   onOpenRanking,
@@ -54,7 +57,18 @@ export function Header({
           <span className="text-xs font-medium tracking-wide text-muted-foreground">
             TEMPO
           </span>
-          <span className="text-sm font-bold text-primary font-cousine">{time}</span>
+          <span className="font-cousine text-sm font-bold text-primary">
+            {time}
+          </span>
+        </div>
+
+        <div className="flex flex-col items-center">
+          <span className="text-xs font-medium tracking-wide text-muted-foreground">
+            MOVIMENTOS
+          </span>
+          <span className="font-cousine text-sm font-bold text-primary">
+            {moves}
+          </span>
         </div>
 
         <div className="flex flex-col items-center">
@@ -62,8 +76,12 @@ export function Header({
             CÉLULAS PREENCHIDAS
           </span>
           <span className="text-sm font-semibold">
-            <span className="text-primary">{filledCells}</span>{" "}
-            <span className="text-input">/ {totalCells}</span>
+            <span className="text-primary">
+              {filledCells}
+            </span>{" "}
+            <span className="text-input">
+              / {totalCells}
+            </span>
           </span>
         </div>
       </div>
@@ -78,6 +96,7 @@ export function Header({
           <Trophy data-icon="inline-start" />
           Ranking
         </Button>
+
         <Button
           variant="outline"
           className="w-auto"
@@ -93,7 +112,12 @@ export function Header({
           <RotateCcw data-icon="inline-start" />
           Reiniciar
         </Button>
-        <Button className="w-auto" data-icon="inline-start" onClick={onNewGame}>
+
+        <Button
+          className="w-auto"
+          data-icon="inline-start"
+          onClick={onNewGame}
+        >
           <Play data-icon="inline-start" />
           Novo Jogo
         </Button>
