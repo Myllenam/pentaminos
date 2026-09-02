@@ -62,6 +62,11 @@ function GamePage() {
   const [rankingOpen, setRankingOpen] =
     useState(false);
 
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [isRunning, setIsRunning] = useState(true);
+  const [isSolving, setIsSolving] = useState(false);
+  const [autoSolved, setAutoSolved] = useState(false);
+  const [solveError, setSolveError] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] =
     useState(0);
 
@@ -127,6 +132,8 @@ function GamePage() {
   }, [isRunning]);
 
   const handleRestart = () => {
+    if (autoSolved) return;
+
     hasRegisteredGame.current = false;
 
     setElapsedSeconds(0);
@@ -378,33 +385,38 @@ function GamePage() {
         ),
       );
 
-      if (
-        outcome.solved &&
-        outcome.placements
-      ) {
-        setIsRunning(false);
+    if (outcome.solved && outcome.placements) {
+      setIsRunning(false);
+      setAutoSolved(true);
+      setPieces(outcome.placements);
 
-        setPieces(
-          outcome.placements,
-        );
+      if (!hasRegisteredGame.current) {
+        hasRegisteredGame.current = true;
 
-        hasRegisteredGame.current =
-          true;
-      } else {
-        setSolveError(
-          "Não foi possível encontrar uma solução para este tabuleiro.",
-        );
+        finishGame({
+          player: "Algoritmo",
+          pieces: pieceCount,
+          elapsedSeconds: outcome.elapsedMs / 1000,
+          autoSolved: true,
+        });
+
+        setRankingOpen(true);
       }
-    } catch (erro) {
+    } else {
       setSolveError(
-        erro instanceof Error
-          ? erro.message
-          : "Erro ao resolver o tabuleiro.",
+        "Não foi possível encontrar uma solução para este tabuleiro.",
       );
-    } finally {
-      setIsSolving(false);
     }
-  };
+  } catch (erro) {
+    setSolveError(
+      erro instanceof Error
+        ? erro.message
+        : "Erro ao resolver o tabuleiro.",
+    );
+  } finally {
+    setIsSolving(false);
+  }
+};
 
   return (
     <div className="relative flex min-h-screen flex-col bg-zinc-50">
@@ -416,15 +428,10 @@ function GamePage() {
         moves={moveCount}
         filledCells={filledCells}
         totalCells={totalCells}
-        onRestart={() =>
-          setRestartOpen(true)
-        }
-        onNewGame={() =>
-          setNewGameOpen(true)
-        }
-        onOpenRanking={() =>
-          setRankingOpen(true)
-        }
+        onRestart={() => setRestartOpen(true)}
+        onNewGame={() => setNewGameOpen(true)}
+        onOpenRanking={() => setRankingOpen(true)}
+        restartDisabled={autoSolved}
       />
 
       <main className="mx-auto flex w-full flex-1 flex-row gap-8 px-8 py-12">
