@@ -1,0 +1,6 @@
+n,instancias,resolvidas_sem,resolvidas_com,nos_media_sem,nos_media_com,nos_mediana_sem,nos_mediana_com,backtracks_media_sem,backtracks_media_com,tempo_media_sem,tempo_media_com
+6,30,30,30,75.3,37.2,35.0,17.0,68.3,59.7,0.302,0.356
+7,30,30,30,215.8,73.4,45.0,17.0,207.8,139.6,0.674,0.699
+8,30,30,30,598.8,178.6,136.0,33.5,589.8,372.2,1.836,1.752
+9,30,30,30,3052.6,690.9,625.5,152.5,3042.6,1571.7,9.107,6.857
+10,30,30,30,15105.5,2819.7,6734.5,1114.0,15094.5,6767.4,43.481,29.225

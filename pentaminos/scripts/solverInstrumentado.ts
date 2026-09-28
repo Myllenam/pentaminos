@@ -1,8 +1,7 @@
+
 import { BoardConfig, Cell, PentominoId, PlacedPiece } from "@/lib/types/pentomino";
 import { PENTOMINOES } from "@/lib/mocks/pentominos";
 import { transformCells } from "@/lib/functions/pentominoGenerator";
-
-import type { SolveRequestPiece } from "@/lib/workers/solverMessages";
 
 const ROTATIONS: Array<0 | 90 | 180 | 270> = [0, 90, 180, 270];
 
@@ -11,7 +10,32 @@ interface Orientation {
   cells: Cell[];
 }
 
-const MAX_NOS = 3_000_000;
+export interface InstanceInput {
+  instanceId: string;
+  shapeId: PentominoId;
+}
+
+export interface SolveMetrics {
+  solved: boolean;
+  placements: PlacedPiece[] | null;
+  elapsedMs: number;
+  nos: number;
+  backtracks: number;
+  podasIlha: number;
+  atingiuLimiteDeNos: boolean;
+  atingiuLimiteDeTempo: boolean;
+}
+
+export interface SolveOptions {
+
+  usarPodaIlha?: boolean;
+
+  maxNos?: number;
+
+  maxTempoMs?: number;
+
+  ignorarPecasIguais?: boolean;
+}
 
 function serializeCells(cells: Cell[]): string {
   return cells
@@ -37,6 +61,7 @@ function orientacoesDe(shapeId: PentominoId): Orientation[] {
   }
   return orientacoes;
 }
+
 
 function regioesVaziasSaoViaveis(
   grid: (string | null)[][],
@@ -86,18 +111,33 @@ function regioesVaziasSaoViaveis(
   return true;
 }
 
-interface Instancia {
-  instanceId: string;
-  shapeId: PentominoId;
-}
-
-export function resolverTabuleiro(
+export function resolverInstrumentado(
   config: BoardConfig,
-  pieces: SolveRequestPiece[],
-): PlacedPiece[] | null {
+  pieces: InstanceInput[],
+  options: SolveOptions = {},
+): SolveMetrics {
+  const {
+    usarPodaIlha = true,
+    maxNos = 3_000_000,
+    maxTempoMs = 20_000,
+    ignorarPecasIguais = false,
+  } = options;
   const { rows, cols } = config;
 
-  if (rows * cols !== pieces.length * 5) return null;
+  const inicio = performance.now();
+
+  if (rows * cols !== pieces.length * 5) {
+    return {
+      solved: false,
+      placements: null,
+      elapsedMs: performance.now() - inicio,
+      nos: 0,
+      backtracks: 0,
+      podasIlha: 0,
+      atingiuLimiteDeNos: false,
+      atingiuLimiteDeTempo: false,
+    };
+  }
 
   const grid: (string | null)[][] = Array.from({ length: rows }, () =>
     Array(cols).fill(null),
@@ -110,13 +150,18 @@ export function resolverTabuleiro(
     }
   }
 
-  const pool: Instancia[] = pieces.map(({ instanceId, shapeId }) => ({
+  const pool: InstanceInput[] = pieces.map(({ instanceId, shapeId }) => ({
     instanceId,
     shapeId,
   }));
 
   const placements: PlacedPiece[] = [];
+
   let nos = 0;
+  let backtracks = 0;
+  let podasIlha = 0;
+  let limiteNosAtingido = false;
+  let limiteTempoAtingido = false;
 
   function primeiraCelulaVazia(): Cell | null {
     for (let r = 0; r < rows; r++) {
@@ -147,16 +192,34 @@ export function resolverTabuleiro(
     });
   }
 
-  function backtrack(restantes: Instancia[]): boolean {
+  function estourouLimites(): boolean {
+    if (nos > maxNos) {
+      limiteNosAtingido = true;
+      return true;
+    }
+    if (nos % 5000 === 0 && performance.now() - inicio > maxTempoMs) {
+      limiteTempoAtingido = true;
+      return true;
+    }
+    return false;
+  }
+
+  function backtrack(restantes: InstanceInput[]): boolean {
     nos++;
-    if (nos > MAX_NOS) return false;
+    if (estourouLimites()) return false;
 
     const vazia = primeiraCelulaVazia();
-    if (!vazia) return true;
+    if (!vazia) return true; 
     const [row, col] = vazia;
+
+    const formasTentadas = ignorarPecasIguais ? new Set<PentominoId>() : null;
 
     for (let i = 0; i < restantes.length; i++) {
       const instancia = restantes[i];
+      if (formasTentadas) {
+        if (formasTentadas.has(instancia.shapeId)) continue;
+        formasTentadas.add(instancia.shapeId);
+      }
       const orientacoes = orientacoesPorShape.get(instancia.shapeId) ?? [];
 
       for (const orientacao of orientacoes) {
@@ -166,12 +229,7 @@ export function resolverTabuleiro(
 
           if (!cabe(orientacao.cells, origemRow, origemCol)) continue;
 
-          ocupar(
-            orientacao.cells,
-            origemRow,
-            origemCol,
-            instancia.instanceId,
-          );
+          ocupar(orientacao.cells, origemRow, origemCol, instancia.instanceId);
           placements.push({
             instanceId: instancia.instanceId,
             shapeId: instancia.shapeId,
@@ -180,25 +238,45 @@ export function resolverTabuleiro(
             origin: [origemRow, origemCol],
           });
 
-          const restaViavel =
-            restantes.length === 1 ||
-            regioesVaziasSaoViaveis(grid, rows, cols);
+          let restaViavel = true;
+          if (restantes.length > 1 && usarPodaIlha) {
+            restaViavel = regioesVaziasSaoViaveis(grid, rows, cols);
+            if (!restaViavel) podasIlha++;
+          }
 
+          let sucesso = false;
           if (restaViavel) {
             const proximas = [
               ...restantes.slice(0, i),
               ...restantes.slice(i + 1),
             ];
-            if (backtrack(proximas)) return true;
+            sucesso = backtrack(proximas);
           }
 
+          if (sucesso) return true;
+
+          backtracks++;
           placements.pop();
           liberar(orientacao.cells, origemRow, origemCol);
+
+          if (limiteNosAtingido || limiteTempoAtingido) return false;
         }
       }
     }
     return false;
   }
 
-  return backtrack(pool) ? placements : null;
+  const sucesso = backtrack(pool);
+  const elapsedMs = performance.now() - inicio;
+
+  return {
+    solved: sucesso,
+    placements: sucesso ? placements : null,
+    elapsedMs,
+    nos,
+    backtracks,
+    podasIlha,
+    atingiuLimiteDeNos: limiteNosAtingido,
+    atingiuLimiteDeTempo: limiteTempoAtingido,
+  };
 }
