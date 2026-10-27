@@ -1,3 +1,38 @@
+import { getPieceCells } from "@/lib/functions/pentominoGenerator";
+import { PENTOMINOES } from "@/lib/mocks/pentominos";
+import type {
+  BoardConfig,
+  Cell,
+  PentominoId,
+  PlacedPiece,
+} from "@/lib/types/pentomino";
+
+export type GameMode = "digital" | "fisico";
+
+export const GAME_MODE_LABELS: Record<GameMode, string> = {
+  digital: "Digital",
+  fisico: "Físico",
+};
+
+export function parseGameMode(
+  value: string | null | undefined,
+): GameMode {
+  return value === "fisico" ? "fisico" : "digital";
+}
+
+// Uma peça na ordem em que foi colocada
+// no tabuleiro final.
+export interface PlacementStep {
+  order: number;
+  shapeId: PentominoId;
+  rotation: PlacedPiece["rotation"];
+  origin: Cell;
+}
+
+// Tabuleiro final: cada célula guarda a
+// letra da peça que a ocupa.
+export type FinalBoard = (PentominoId | null)[][];
+
 export interface RankingEntry {
   id: string;
   player: string;
@@ -6,16 +41,32 @@ export interface RankingEntry {
   moves?: number;
   date: string;
   autoSolved?: boolean;
+  // Resultados antigos não têm modo
+  // e são tratados como "digital".
+  mode?: GameMode;
+  placements?: PlacementStep[];
+  finalBoard?: FinalBoard;
 }
+
+export type NewRankingEntry = Omit<RankingEntry, "id">;
 
 export type RankingSort = "time" | "moves";
 
-interface GetRankingOptions {
+export interface GetRankingOptions {
   pieces?: number;
+  mode?: GameMode;
   sortBy?: RankingSort;
 }
 
 const STORAGE_KEY = "pentaminos:ranking";
+
+// Quando definida, o ranking é lido e salvo
+// pelo backend. Sem ela, usa o localStorage.
+const RANKING_API_URL =
+  process.env.NEXT_PUBLIC_RANKING_API_URL?.replace(
+    /\/+$/,
+    "",
+  );
 
 function timeToSeconds(time: string): number {
   const [minutes, seconds] = time.split(":").map(Number);
@@ -57,17 +108,27 @@ function sortRanking(
   });
 }
 
-export function getRanking(
-  options: GetRankingOptions = {},
+function filterRanking(
+  entries: RankingEntry[],
+  { pieces, mode }: GetRankingOptions,
 ): RankingEntry[] {
+  return entries.filter(
+    (entry) =>
+      (pieces === undefined ||
+        entry.pieces === pieces) &&
+      (mode === undefined ||
+        (entry.mode ?? "digital") === mode),
+  );
+}
+
+// ==========================================
+// ARMAZENAMENTO LOCAL
+// ==========================================
+
+function readLocalRanking(): RankingEntry[] {
   if (typeof window === "undefined") {
     return [];
   }
-
-  const {
-    pieces,
-    sortBy = "time",
-  } = options;
 
   const raw =
     window.localStorage.getItem(STORAGE_KEY);
@@ -92,41 +153,120 @@ export function getRanking(
       manualRanking.length !==
       ranking.length
     ) {
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(manualRanking),
-      );
+      writeLocalRanking(manualRanking);
     }
 
-    // Se uma quantidade de peças foi informada,
-    // mostra somente aquela categoria.
-    const filteredRanking =
-      pieces === undefined
-        ? manualRanking
-        : manualRanking.filter(
-            (entry) =>
-              entry.pieces === pieces,
-          );
-
-    return sortRanking(
-      filteredRanking,
-      sortBy,
-    );
+    return manualRanking;
   } catch {
     return [];
   }
 }
 
-export function saveRankingEntry(
-  entry: Omit<RankingEntry, "id">,
-): RankingEntry[] {
-  const currentRanking = getRanking();
+function writeLocalRanking(
+  entries: RankingEntry[],
+): void {
+  window.localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(entries),
+  );
+}
 
+// ==========================================
+// BACKEND
+// ==========================================
+
+async function requestApi<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<T> {
+  const response = await fetch(
+    `${RANKING_API_URL}${path}`,
+    {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...init?.headers,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Falha ao acessar o ranking (${response.status}).`,
+    );
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return (await response.json()) as T;
+}
+
+// ==========================================
+// API PÚBLICA
+// ==========================================
+
+export async function getRanking(
+  options: GetRankingOptions = {},
+): Promise<RankingEntry[]> {
+  const { sortBy = "time" } = options;
+
+  if (RANKING_API_URL) {
+    const params = new URLSearchParams({
+      sortBy,
+    });
+
+    if (options.pieces !== undefined) {
+      params.set(
+        "pieces",
+        String(options.pieces),
+      );
+    }
+
+    if (options.mode) {
+      params.set("mode", options.mode);
+    }
+
+    const entries = await requestApi<
+      RankingEntry[]
+    >(`/ranking?${params.toString()}`);
+
+    // Reaplica filtro e ordenação para
+    // garantir o mesmo resultado do modo local.
+    return sortRanking(
+      filterRanking(entries, options),
+      sortBy,
+    );
+  }
+
+  return sortRanking(
+    filterRanking(
+      readLocalRanking(),
+      options,
+    ),
+    sortBy,
+  );
+}
+
+export async function saveRankingEntry(
+  entry: NewRankingEntry,
+): Promise<RankingEntry | null> {
   // Segurança extra:
   // soluções automáticas nunca entram
   // no ranking.
   if (entry.autoSolved) {
-    return currentRanking;
+    return null;
+  }
+
+  if (RANKING_API_URL) {
+    return requestApi<RankingEntry>(
+      "/ranking",
+      {
+        method: "POST",
+        body: JSON.stringify(entry),
+      },
+    );
   }
 
   const newEntry: RankingEntry = {
@@ -134,20 +274,23 @@ export function saveRankingEntry(
     id: crypto.randomUUID(),
   };
 
-  const updatedRanking = sortRanking([
-    ...currentRanking,
+  writeLocalRanking([
+    ...readLocalRanking(),
     newEntry,
   ]);
 
-  window.localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(updatedRanking),
-  );
-
-  return updatedRanking;
+  return newEntry;
 }
 
-export function clearRanking(): void {
+export async function clearRanking(): Promise<void> {
+  if (RANKING_API_URL) {
+    await requestApi<void>("/ranking", {
+      method: "DELETE",
+    });
+
+    return;
+  }
+
   if (typeof window === "undefined") {
     return;
   }
@@ -156,6 +299,79 @@ export function clearRanking(): void {
     STORAGE_KEY,
   );
 }
+
+// ==========================================
+// HISTÓRICO DA PARTIDA
+// ==========================================
+
+// Monta a lista de passos seguindo a ordem
+// de colocação. Peças que não estão no
+// tabuleiro são ignoradas.
+export function buildPlacementSteps(
+  pieces: PlacedPiece[],
+  placementOrder: string[],
+): PlacementStep[] {
+  const byId = new Map(
+    pieces.map((piece) => [
+      piece.instanceId,
+      piece,
+    ]),
+  );
+
+  return placementOrder
+    .map((instanceId) => byId.get(instanceId))
+    .filter(
+      (piece): piece is PlacedPiece & {
+        origin: Cell;
+      } => !!piece?.origin,
+    )
+    .map((piece, index) => ({
+      order: index + 1,
+      shapeId: piece.shapeId,
+      rotation: piece.rotation,
+      origin: piece.origin,
+    }));
+}
+
+export function buildFinalBoard(
+  config: BoardConfig,
+  steps: PlacementStep[],
+): FinalBoard {
+  const board: FinalBoard = Array.from(
+    { length: config.rows },
+    () =>
+      Array.from<PentominoId | null>({
+        length: config.cols,
+      }).fill(null),
+  );
+
+  steps.forEach((step) => {
+    const shape = PENTOMINOES.find(
+      (pentomino) =>
+        pentomino.id === step.shapeId,
+    );
+
+    if (!shape) {
+      return;
+    }
+
+    getPieceCells(
+      shape,
+      step.rotation,
+      step.origin,
+    ).forEach(([row, col]) => {
+      if (board[row]?.[col] !== undefined) {
+        board[row][col] = step.shapeId;
+      }
+    });
+  });
+
+  return board;
+}
+
+// ==========================================
+// FORMATAÇÃO
+// ==========================================
 
 export function formatElapsedTime(
   totalSeconds: number,
@@ -195,6 +411,9 @@ export interface FinishGameParams {
   pieces: number;
   moves: number;
   elapsedSeconds: number;
+  mode: GameMode;
+  placements: PlacementStep[];
+  finalBoard: FinalBoard;
 }
 
 export function finishGame({
@@ -202,7 +421,10 @@ export function finishGame({
   pieces,
   moves,
   elapsedSeconds,
-}: FinishGameParams): RankingEntry[] {
+  mode,
+  placements,
+  finalBoard,
+}: FinishGameParams): Promise<RankingEntry | null> {
   return saveRankingEntry({
     player:
       player.trim() || "Jogador",
@@ -212,5 +434,8 @@ export function finishGame({
     pieces,
     moves,
     date: formatToday(),
+    mode,
+    placements,
+    finalBoard,
   });
 }

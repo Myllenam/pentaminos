@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import {
+  ChevronDown,
   Trash2,
   Trophy,
 } from "lucide-react";
@@ -15,12 +16,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  FinalBoardView,
+  PlacementList,
+} from "@/components/resultado-partida/resultado-partida";
 import { cn } from "@/lib/utils";
 import {
   clearRanking,
+  GAME_MODE_LABELS,
   getRanking,
+  type GameMode,
+  type RankingEntry,
   type RankingSort,
 } from "@/lib/ranking";
+
+const GAME_MODES: GameMode[] = ["digital", "fisico"];
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
@@ -30,28 +40,98 @@ export interface RankingProps {
     open: boolean,
   ) => void;
   pieceCount: number;
+  mode?: GameMode;
 }
 
 export function Ranking({
   open,
   onOpenChange,
   pieceCount,
+  mode = "digital",
 }: RankingProps) {
   const [sortBy, setSortBy] =
     useState<RankingSort>("time");
 
-  const [, setRefreshVersion] =
+  const [modeFilter, setModeFilter] =
+    useState<GameMode>(mode);
+
+  const [entries, setEntries] = useState<
+    RankingEntry[]
+  >([]);
+
+  const [loadError, setLoadError] =
+    useState<string | null>(null);
+
+  const [refreshVersion, setRefreshVersion] =
     useState(0);
 
-  const entries = open
-    ? getRanking({
-        pieces: pieceCount,
-        sortBy,
-      })
-    : [];
+  const [expandedId, setExpandedId] =
+    useState<string | null>(null);
 
-  const handleClear = () => {
-    clearRanking();
+  // Sempre que o diálogo abre, o filtro
+  // volta para o modo da partida atual.
+  const [wasOpen, setWasOpen] =
+    useState(open);
+
+  if (open !== wasOpen) {
+    setWasOpen(open);
+
+    if (open) {
+      setModeFilter(mode);
+      setExpandedId(null);
+    }
+  }
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    let cancelled = false;
+
+    getRanking({
+      pieces: pieceCount,
+      mode: modeFilter,
+      sortBy,
+    })
+      .then((ranking) => {
+        if (cancelled) return;
+
+        setEntries(ranking);
+        setLoadError(null);
+      })
+      .catch((erro) => {
+        if (cancelled) return;
+
+        setEntries([]);
+        setLoadError(
+          erro instanceof Error
+            ? erro.message
+            : "Erro ao carregar o ranking.",
+        );
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    open,
+    pieceCount,
+    modeFilter,
+    sortBy,
+    refreshVersion,
+  ]);
+
+  const handleClear = async () => {
+    try {
+      await clearRanking();
+    } catch (erro) {
+      setLoadError(
+        erro instanceof Error
+          ? erro.message
+          : "Erro ao limpar o ranking.",
+      );
+    }
 
     setRefreshVersion(
       (current) => current + 1,
@@ -77,7 +157,8 @@ export function Ranking({
 
               <DialogDescription>
                 Melhores resultados com{" "}
-                {pieceCount} peças
+                {pieceCount} peças no modo{" "}
+                {GAME_MODE_LABELS[modeFilter].toLowerCase()}
               </DialogDescription>
             </div>
 
@@ -93,6 +174,33 @@ export function Ranking({
             </Button>
           </div>
         </DialogHeader>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Modo
+          </span>
+
+          <div className="flex items-center gap-2">
+            {GAME_MODES.map((gameMode) => (
+              <Button
+                key={gameMode}
+                type="button"
+                size="sm"
+                variant={
+                  modeFilter === gameMode
+                    ? "default"
+                    : "outline"
+                }
+                className="w-auto"
+                onClick={() =>
+                  setModeFilter(gameMode)
+                }
+              >
+                {GAME_MODE_LABELS[gameMode]}
+              </Button>
+            ))}
+          </div>
+        </div>
 
         <div className="flex items-center justify-between gap-3">
           <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
@@ -161,6 +269,12 @@ export function Ranking({
                 <th className="px-4 py-2 text-left font-medium">
                   Data
                 </th>
+
+                <th className="px-2 py-2">
+                  <span className="sr-only">
+                    Detalhes
+                  </span>
+                </th>
               </tr>
             </thead>
 
@@ -168,20 +282,27 @@ export function Ranking({
               {entries.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-4 py-8 text-center text-sm text-muted-foreground"
                   >
-                    Nenhum resultado
-                    registrado com{" "}
-                    {pieceCount} peças.
+                    {loadError ??
+                      `Nenhum resultado registrado com ${pieceCount} peças no modo ${GAME_MODE_LABELS[modeFilter].toLowerCase()}.`}
                   </td>
                 </tr>
               )}
 
               {entries.map(
-                (entry, index) => (
+                (entry, index) => {
+                  const hasDetails =
+                    !!entry.finalBoard &&
+                    !!entry.placements;
+
+                  const expanded =
+                    expandedId === entry.id;
+
+                  return (
+                <Fragment key={entry.id}>
                   <tr
-                    key={entry.id}
                     className={cn(
                       "border-t border-border",
                       index === 0
@@ -238,8 +359,69 @@ export function Ranking({
                     <td className="px-4 py-3 align-top text-xs text-muted-foreground">
                       {entry.date}
                     </td>
+
+                    <td className="px-2 py-2 align-top">
+                      {hasDetails && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="w-auto text-muted-foreground"
+                          aria-label={
+                            expanded
+                              ? "Ocultar solução"
+                              : "Ver solução"
+                          }
+                          aria-expanded={expanded}
+                          onClick={() =>
+                            setExpandedId(
+                              expanded
+                                ? null
+                                : entry.id,
+                            )
+                          }
+                        >
+                          <ChevronDown
+                            className={cn(
+                              "transition-transform",
+                              expanded &&
+                                "rotate-180",
+                            )}
+                          />
+                        </Button>
+                      )}
+                    </td>
                   </tr>
-                ),
+
+                  {expanded &&
+                    entry.finalBoard &&
+                    entry.placements && (
+                      <tr className="border-t border-border bg-muted/30">
+                        <td
+                          colSpan={7}
+                          className="px-4 py-4"
+                        >
+                          <div className="flex flex-col gap-6 sm:flex-row">
+                            <FinalBoardView
+                              board={
+                                entry.finalBoard
+                              }
+                            />
+
+                            <div className="max-h-56 flex-1 overflow-y-auto">
+                              <PlacementList
+                                placements={
+                                  entry.placements
+                                }
+                              />
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                </Fragment>
+                  );
+                },
               )}
             </tbody>
           </table>

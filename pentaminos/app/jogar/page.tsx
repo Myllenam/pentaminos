@@ -21,6 +21,10 @@ import { Header } from "@/components/header/header";
 import { PieceCard } from "@/components/pieceCard/pieceCard";
 import { Progresso } from "@/components/progresso/progresso";
 import { Ranking } from "@/components/ranking/ranking";
+import {
+  ResultadoPartida,
+  type GameResult,
+} from "@/components/resultado-partida/resultado-partida";
 import { Button } from "@/components/ui/button";
 
 import {
@@ -33,8 +37,11 @@ import {
 import { useSolverWorker } from "@/lib/hooks/useSolverWorker";
 import { PENTOMINOES } from "@/lib/mocks/pentominos";
 import {
+  buildFinalBoard,
+  buildPlacementSteps,
   finishGame,
   formatElapsedTime,
+  parseGameMode,
 } from "@/lib/ranking";
 import { PlacedPiece } from "@/lib/types/pentomino";
 
@@ -44,6 +51,10 @@ function GamePage() {
 
   const playerName =
     searchParams.get("nome") || "Jogador";
+
+  const gameMode = parseGameMode(
+    searchParams.get("modo"),
+  );
 
   const pieceCount = Math.min(
     Math.max(
@@ -63,6 +74,15 @@ function GamePage() {
 
   const [rankingOpen, setRankingOpen] =
     useState(false);
+
+  const [resultOpen, setResultOpen] =
+    useState(false);
+
+  const [gameResult, setGameResult] =
+    useState<GameResult | null>(null);
+
+  const [saveError, setSaveError] =
+    useState<string | null>(null);
 
   const [elapsedSeconds, setElapsedSeconds] =
     useState(0);
@@ -94,6 +114,12 @@ function GamePage() {
     selectedInstanceId,
     setSelectedInstanceId,
   ] = useState<string | null>(null);
+
+  // instanceIds na ordem em que as peças
+  // foram colocadas. Retirar uma peça a
+  // remove da lista.
+  const [placementOrder, setPlacementOrder] =
+    useState<string[]>([]);
 
   const { solve } = useSolverWorker();
 
@@ -145,6 +171,9 @@ function GamePage() {
     setMoveCount(0);
     setIsRunning(true);
     setSolveError(null);
+    setSaveError(null);
+    setGameResult(null);
+    setPlacementOrder([]);
 
     setPieces(
       board.availablePieces.map((piece) => ({
@@ -257,50 +286,85 @@ function GamePage() {
       const nextMoveCount =
         moveCount + 1;
 
+      const updatedPieces = pieces.map(
+        (piece) =>
+          piece.instanceId ===
+          selectedInstanceId
+            ? {
+                ...piece,
+                origin,
+              }
+            : piece,
+      );
+
+      const updatedOrder = [
+        ...placementOrder.filter(
+          (id) =>
+            id !== selectedInstanceId,
+        ),
+        selectedInstanceId,
+      ];
+
       setMoveCount(nextMoveCount);
-
-      setPieces((current) => {
-        const updatedPieces =
-          current.map((piece) =>
-            piece.instanceId ===
-            selectedInstanceId
-              ? {
-                  ...piece,
-                  origin,
-                }
-              : piece,
-          );
-
-        const isFinished =
-          updatedPieces.every(
-            (piece) =>
-              piece.origin !== null,
-          );
-
-        // Apenas uma solução feita manualmente
-        // entra no ranking.
-        if (
-          isFinished &&
-          !hasRegisteredGame.current
-        ) {
-          hasRegisteredGame.current =
-            true;
-
-          finishGame({
-            player: playerName,
-            pieces: pieceCount,
-            moves: nextMoveCount,
-            elapsedSeconds,
-          });
-
-          setIsRunning(false);
-          setRankingOpen(true);
-        }
-
-        return updatedPieces;
-      });
-
+      setPieces(updatedPieces);
+      setPlacementOrder(updatedOrder);
       setSelectedInstanceId(null);
+
+      const isFinished =
+        updatedPieces.every(
+          (piece) =>
+            piece.origin !== null,
+        );
+
+      // Apenas uma solução feita manualmente
+      // entra no ranking.
+      if (
+        isFinished &&
+        !hasRegisteredGame.current
+      ) {
+        hasRegisteredGame.current = true;
+
+        setIsRunning(false);
+
+        const placements =
+          buildPlacementSteps(
+            updatedPieces,
+            updatedOrder,
+          );
+
+        const finalBoard = buildFinalBoard(
+          board.config,
+          placements,
+        );
+
+        setGameResult({
+          time: formatElapsedTime(
+            elapsedSeconds,
+          ),
+          moves: nextMoveCount,
+          mode: gameMode,
+          autoSolved: false,
+          placements,
+          finalBoard,
+        });
+        setResultOpen(true);
+
+        finishGame({
+          player: playerName,
+          pieces: pieceCount,
+          moves: nextMoveCount,
+          elapsedSeconds,
+          mode: gameMode,
+          placements,
+          finalBoard,
+        }).catch((erro) => {
+          setSaveError(
+            erro instanceof Error
+              ? `Não foi possível salvar no ranking: ${erro.message}`
+              : "Não foi possível salvar no ranking.",
+          );
+        });
+      }
 
       return;
     }
@@ -361,6 +425,12 @@ function GamePage() {
           : piece,
       ),
     );
+
+    setPlacementOrder((current) =>
+      current.filter(
+        (id) => id !== owner.instanceId,
+      ),
+    );
   };
 
   const handleSolve = async () => {
@@ -383,6 +453,7 @@ function GamePage() {
       );
 
       setPieces(clearedPieces);
+      setPlacementOrder([]);
 
       const outcome = await solve(
         board.config,
@@ -405,6 +476,36 @@ function GamePage() {
         setPieces(
           outcome.placements,
         );
+
+        // O algoritmo coloca as peças na
+        // ordem em que aparecem na solução.
+        const solverOrder =
+          outcome.placements.map(
+            (piece) => piece.instanceId,
+          );
+
+        setPlacementOrder(solverOrder);
+
+        const placements =
+          buildPlacementSteps(
+            outcome.placements,
+            solverOrder,
+          );
+
+        setGameResult({
+          time: formatElapsedTime(
+            elapsedSeconds,
+          ),
+          moves: moveCount,
+          mode: gameMode,
+          autoSolved: true,
+          placements,
+          finalBoard: buildFinalBoard(
+            board.config,
+            placements,
+          ),
+        });
+        setResultOpen(true);
 
         // Marca a partida como concluída
         // para impedir qualquer registro
@@ -578,12 +679,24 @@ function GamePage() {
         }
       />
 
+      <ResultadoPartida
+        open={resultOpen}
+        onOpenChange={setResultOpen}
+        result={gameResult}
+        saveError={saveError}
+        onOpenRanking={() => {
+          setResultOpen(false);
+          setRankingOpen(true);
+        }}
+      />
+
       <Ranking
         open={rankingOpen}
         onOpenChange={
           setRankingOpen
         }
         pieceCount={pieceCount}
+        mode={gameMode}
       />
     </div>
   );

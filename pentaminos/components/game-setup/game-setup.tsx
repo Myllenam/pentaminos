@@ -9,17 +9,25 @@ import { Ranking } from "@/components/ranking/ranking";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QuantityStepper } from "@/components/quantity-stepper/quantity-stepper";
+import {
+  GAME_MODE_LABELS,
+  type GameMode,
+} from "@/lib/ranking";
+
+const GAME_MODES: GameMode[] = ["digital", "fisico"];
 
 export function GameSetup() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [pieceCount, setPieceCount] = useState(6);
+  const [mode, setMode] = useState<GameMode>("digital");
   const [rankingOpen, setRankingOpen] = useState(false);
 
   const handleStart = () => {
     const params = new URLSearchParams({
       nome: name.trim() || "Jogador",
       pecas: String(pieceCount),
+      modo: mode,
     });
     router.push(`/jogar?${params.toString()}`);
   };
@@ -49,6 +57,7 @@ export function GameSetup() {
           <Input
             id="player-name"
             placeholder="Digite seu nome para jogar"
+            maxLength={40}
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
@@ -64,6 +73,27 @@ export function GameSetup() {
           <span className="text-center text-xs text-muted-foreground">
             Escolha entre 3 e 12 peças.
           </span>
+        </div>
+
+        <div className="my-6 border-t border-border" />
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-bold tracking-wide text-foreground uppercase">
+            Modo da partida
+          </span>
+          <div className="grid grid-cols-2 gap-2">
+            {GAME_MODES.map((gameMode) => (
+              <Button
+                key={gameMode}
+                type="button"
+                variant={mode === gameMode ? "default" : "outline"}
+                aria-pressed={mode === gameMode}
+                onClick={() => setMode(gameMode)}
+              >
+                {GAME_MODE_LABELS[gameMode]}
+              </Button>
+            ))}
+          </div>
         </div>
 
         <div className="mt-6 flex flex-col gap-2">
@@ -94,10 +124,11 @@ export function GameSetup() {
       </p>
 
       <Ranking
-  open={rankingOpen}
-  onOpenChange={setRankingOpen}
-  pieceCount={pieceCount}
-/>
+        open={rankingOpen}
+        onOpenChange={setRankingOpen}
+        pieceCount={pieceCount}
+        mode={mode}
+      />
     </div>
   );
 }
