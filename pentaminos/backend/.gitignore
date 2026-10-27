@@ -1,0 +1,2 @@
+# O .gitignore do front-end ignora .env*; o exemplo precisa ser versionado.
+!.env.example
