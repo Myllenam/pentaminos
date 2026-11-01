@@ -36,8 +36,7 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            # Em SQLite, ALTER TABLE exige recriar a tabela; o modo batch cuida disso
-            # e não faz diferença no Postgres.
+            # Necessário no SQLite.
             render_as_batch=True,
         )
         with context.begin_transaction():
