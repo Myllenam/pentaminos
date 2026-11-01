@@ -158,10 +158,11 @@ export function GameSetup() {
             <p className="flex items-start gap-2">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
               <span>
-                <strong>Servidor indisponível.</strong> {erroSessao}
+                <strong>Servidor indisponível.</strong> {erroSessao} Inicie o
+                backend ou jogue no modo simulado.
               </span>
             </p>
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="grid gap-2 sm:grid-cols-2">
               <Button
                 variant="outline"
                 onClick={handleStartFisico}
