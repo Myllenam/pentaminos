@@ -42,8 +42,7 @@ function sortRanking(
         return aMoves - bMoves;
       }
 
-      // Em caso de empate nos movimentos,
-      // o menor tempo fica primeiro.
+      // Empate: menor tempo.
       return aTime - bTime;
     }
 
@@ -51,8 +50,7 @@ function sortRanking(
       return aTime - bTime;
     }
 
-    // Em caso de empate no tempo,
-    // quem fez menos movimentos fica primeiro.
+    // Empate: menos movimentos.
     return aMoves - bMoves;
   });
 }
@@ -80,14 +78,12 @@ export function getRanking(
     const ranking =
       JSON.parse(raw) as RankingEntry[];
 
-    // Remove resultados antigos
-    // gerados automaticamente.
+    // Remove resultados automáticos.
     const manualRanking = ranking.filter(
       (entry) => !entry.autoSolved,
     );
 
-    // Atualiza o localStorage caso ainda
-    // existam resultados automáticos antigos.
+    // Limpa o localStorage.
     if (
       manualRanking.length !==
       ranking.length
@@ -98,8 +94,7 @@ export function getRanking(
       );
     }
 
-    // Se uma quantidade de peças foi informada,
-    // mostra somente aquela categoria.
+    // Filtra por quantidade de peças.
     const filteredRanking =
       pieces === undefined
         ? manualRanking
@@ -122,9 +117,7 @@ export function saveRankingEntry(
 ): RankingEntry[] {
   const currentRanking = getRanking();
 
-  // Segurança extra:
-  // soluções automáticas nunca entram
-  // no ranking.
+  // Solução automática não entra.
   if (entry.autoSolved) {
     return currentRanking;
   }

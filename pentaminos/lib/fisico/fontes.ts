@@ -21,10 +21,7 @@ export const WS_URL =
 
 const ESPERA_MAXIMA_MS = 10_000;
 
-/**
- * Conecta em {WS_URL}/ws/sessions/{id}. Se cair, tenta de novo com
- * espera crescente: 1 s, 2 s, 4 s, 8 s, 10 s, 10 s...
- */
+// Reconecta com espera de 1 s, 2 s, 4 s... até 10 s.
 export class FonteWebSocket implements FonteEventos {
   readonly tipo = "websocket";
 
@@ -82,7 +79,7 @@ export class FonteWebSocket implements FonteEventos {
       if (mensagem) onMensagem(mensagem);
     };
 
-    // onerror sempre vem seguido de onclose; a reconexão fica lá.
+    // onclose também roda após erro.
     socket.onclose = () => {
       this.socket = null;
       this.agendar(onMensagem, onStatus);
@@ -107,11 +104,7 @@ export class FonteWebSocket implements FonteEventos {
   }
 }
 
-/**
- * Reproduz demo_sintetico.jsonl trocando "session" pelo id atual.
- * A cada intervalo emite um board_state junto com os eventos de peça
- * que vêm logo depois dele (como o pipeline faz num mesmo quadro).
- */
+// Reproduz o demo, um quadro por intervalo.
 export class FonteSimulada implements FonteEventos {
   readonly tipo = "simulada";
 
@@ -130,7 +123,7 @@ export class FonteSimulada implements FonteEventos {
     let proximo = 0;
 
     onStatus("conectada");
-    // A demo não tem camera_status; simulamos uma câmera ok.
+    // Câmera simulada.
     onMensagem({
       type: "camera_status",
       session: this.sessaoId,

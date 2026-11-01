@@ -30,14 +30,14 @@ export interface VitoriaFisica {
 export interface EstadoFisico {
   grade: string[];
   pecas: Partial<Record<PentominoId, PecaFisica>>;
-  // Peças presentes, na ordem em que foram (re)colocadas.
+  // Ordem de colocação.
   ordemColocacao: PentominoId[];
   eventos: EventoFisico[]; // mais recente primeiro
   numeroJogadas: number; // como no backend: soma 1 a cada piece_placed
   camera: "conectada" | "desconectada" | null; // null = nunca informado
   tabuleiro: "detectado" | "perdido" | null;
   vitoria: VitoriaFisica | null;
-  // No modo simulado não há servidor para mandar game_won.
+  // Modo simulado: sem game_won.
   detectarVitoriaLocal: boolean;
 }
 
@@ -79,7 +79,7 @@ export function pecasValidas(
   );
 }
 
-/** Grade cheia, sem "?", e as 12 peças presentes e válidas. */
+// Grade cheia e 12 peças válidas.
 export function tabuleiroCompleto(estado: EstadoFisico): boolean {
   return (
     casasPreenchidas(estado.grade) ===

@@ -1,13 +1,11 @@
 import { TOTAL_PECAS_FISICO } from "@/lib/types/fisico";
 
-// Rotas de backend/README.md (POST /sessions, /finish, /abandon).
-
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const TEMPO_LIMITE_MS = 5000;
 
-// Sessões sem backend ("Jogar em modo simulado") usam este prefixo.
+// Sessão sem backend.
 const PREFIXO_LOCAL = "local-";
 
 export function criarSessaoLocal(): string {
@@ -71,7 +69,7 @@ export async function finalizarSessao(
   sessaoId: string,
   grade: string[],
 ): Promise<void> {
-  // O backend aceita letra, "." ou null; "?" vira null.
+  // "?" vira null.
   const tabuleiroFinal = grade.map((linha) =>
     [...linha].map((casa) => (casa === "?" ? null : casa)),
   );

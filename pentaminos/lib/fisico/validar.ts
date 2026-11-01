@@ -107,10 +107,7 @@ function motivoInvalida(dado: Registro): string | null {
   }
 }
 
-/**
- * Confere uma mensagem recebida (já parseada ou texto JSON).
- * Devolve a mensagem tipada ou null; nunca lança.
- */
+// Devolve a mensagem ou null.
 export function validarMensagem(
   bruto: unknown,
 ): MensagemFisico | null {

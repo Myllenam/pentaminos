@@ -1,8 +1,6 @@
 import { Cell, PentominoId } from "./pentomino";
 
-// Contrato das mensagens do modo físico.
-// board_state / piece_placed / piece_removed: geradas por visao/pipeline.py.
-// camera_status / game_won: virão do servidor (Atividade 7).
+// Mensagens do modo físico.
 
 export const LINHAS_FISICO = 6;
 export const COLUNAS_FISICO = 10;

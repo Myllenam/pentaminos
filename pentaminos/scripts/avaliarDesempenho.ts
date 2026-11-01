@@ -1,22 +1,5 @@
-/**
- * Avaliação experimental do solver de Pentaminós — versão com repetições.
- *
- * Para cada quantidade de peças N, gera várias instâncias (tabuleiros
- * novos), resolve cada uma e calcula estatísticas (média, mediana, mínimo,
- * máximo e desvio padrão) de tempo, nós visitados, backtracks e podas.
- * Também compara o algoritmo COM e SEM a poda por regiões isoladas nas
- * mesmas instâncias.
- *
- * Como rodar (a partir da raiz do projeto):
- *
- *   npx tsx scripts/avaliarDesempenho.ts
- *
- * Opções por variável de ambiente (opcionais):
- *   REPETICOES=30   instâncias por N (padrão 30)
- *   SEED=12345      semente do sorteio (mesma semente = mesmas instâncias)
- *
- * Exemplo no PowerShell:   $env:REPETICOES=5; npx tsx scripts/avaliarDesempenho.ts
- */
+// Mede o solver de 3 a 12 peças.
+// Rodar: npx tsx scripts/avaliarDesempenho.ts (REPETICOES, SEED opcionais)
 
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -29,9 +12,7 @@ import {
   SolveMetrics,
 } from "./solverInstrumentado";
 
-// ----------------------------------------------------------------------
-// Configuração do experimento 
-// ----------------------------------------------------------------------
+// Configuração
 
 const TAMANHOS = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 

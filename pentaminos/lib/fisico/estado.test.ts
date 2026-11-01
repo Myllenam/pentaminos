@@ -80,7 +80,7 @@ describe("reducerFisico com demo_sintetico.jsonl", () => {
       "F", "L", "I", "N", "P", "T", "U", "V", "W", "X", "Y", "Z",
     ]);
     expect(pecasValidas(estado)).toHaveLength(12);
-    // Como no backend: cada piece_placed conta (13 no demo).
+    // 13 piece_placed no demo.
     expect(estado.numeroJogadas).toBe(13);
     expect(estado.eventos[0].texto).toBe("Z colocada");
     expect(estado.eventos.map((e) => e.texto)).toContain("I removida");
@@ -193,7 +193,7 @@ describe("FonteSimulada", () => {
     vi.advanceTimersByTime(20_000);
 
     expect(status).toHaveBeenCalledWith("conectada");
-    // camera_status inicial + 29 linhas do demo.
+    // camera_status + 29 linhas.
     expect(recebidas).toHaveLength(30);
     expect(recebidas.every((m) => m.session === "abc123")).toBe(true);
 

@@ -14,7 +14,7 @@ const HACHURA_INCERTA =
 interface BoardFisicoProps {
   grade: string[]; // 6 strings de 10 caracteres
   pecasInvalidas?: ReadonlySet<string>;
-  // Aviso desenhado por cima, sem esconder a grade.
+  // Aviso por cima da grade.
   sobreposicao?: ReactNode;
   className?: string;
 }

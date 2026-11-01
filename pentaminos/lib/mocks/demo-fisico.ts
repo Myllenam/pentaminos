@@ -1,8 +1,6 @@
 import { MensagemFisico } from "../types/fisico";
 
-// Cópia de backend/tests/fixtures/demo_sintetico.jsonl (saída real de
-// visao/demo_sintetico.py). Usada pela FonteSimulada; o teste
-// lib/fisico/estado.test.ts confere que continua igual ao .jsonl.
+// Cópia de demo_sintetico.jsonl.
 export const DEMO_FISICO: MensagemFisico[] = [
   {"type":"board_state","session":"demo","ts":1793141067,"grid":["..........","..........","..........","..........","..........",".........."]},
   {"type":"board_state","session":"demo","ts":1793141068,"grid":["..........","..........","..........","..F.......","..FF......",".FF......."]},

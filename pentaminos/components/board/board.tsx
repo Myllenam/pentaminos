@@ -32,9 +32,7 @@ export function Board({
 }: BoardProps) {
   const [hoveredCell, setHoveredCell] = useState<[number, number] | null>(null);
 
-  // ---------------------------------------
-  // PEÇAS JÁ COLOCADAS
-  // ---------------------------------------
+  // Peças colocadas
 
   const cellColorMap = new Map<string, string>();
   const cellLetterMap = new Map<string, string>();
@@ -54,9 +52,7 @@ export function Board({
     });
   });
 
-  // ---------------------------------------
-  // PREVIEW
-  // ---------------------------------------
+  // Preview
 
   const previewCellMap = new Map<string, string>();
   const previewLetterMap = new Map<string, string>();
@@ -86,8 +82,7 @@ export function Board({
       const cells = getPieceCells(shape, previewPiece.rotation, previewOrigin);
 
       cells.forEach(([row, col]) => {
-        // Só desenhamos células que estão
-        // dentro do tabuleiro.
+        // Só dentro do tabuleiro.
         if (row >= 0 && row < config.rows && col >= 0 && col < config.cols) {
           previewCellMap.set(`${row}-${col}`, shape.color);
           previewLetterMap.set(`${row}-${col}`, shape.id);
@@ -97,10 +92,6 @@ export function Board({
   }
 
   const previewBorder = previewValid ? "#22c55e" : "#ef4444";
-
-  // ---------------------------------------
-  // RENDER
-  // ---------------------------------------
 
   return (
     <div

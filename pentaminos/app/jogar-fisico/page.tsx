@@ -100,8 +100,7 @@ function TelaFisico({
     return () => clearInterval(interval);
   }, [isRunning]);
 
-  // No modo simulado o próprio front registra a vitória no backend.
-  // Com WebSocket quem finaliza é o servidor.
+  // Só no simulado: com WebSocket o servidor finaliza.
   useEffect(() => {
     if (
       !venceu ||

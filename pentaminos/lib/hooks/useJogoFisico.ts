@@ -11,17 +11,14 @@ import {
 } from "@/lib/fisico/fontes";
 import { StatusConexao } from "@/lib/types/fisico";
 
-// Se o WebSocket não conectar nesse tempo, cai para a fonte simulada.
+// Depois disso, usa a simulada.
 export const ESPERA_WEBSOCKET_MS = 5000;
 
 interface OpcoesJogoFisico {
   intervaloSimuladoMs?: number;
 }
 
-/**
- * Estado da partida física. A tela deve ser montada com key={sessaoId}
- * para que uma sessão nova comece do zero.
- */
+// Use key={sessaoId} na tela.
 export function useJogoFisico(
   sessaoId: string,
   fontePreferida: TipoFonte,
@@ -79,7 +76,6 @@ export function useJogoFisico(
     estado,
     venceu: estado.vitoria !== null,
     conexao,
-    // "conectando" depois de uma queda = nova tentativa.
     reconectando: conexao === "conectando" && houveQueda,
     fonteAtiva,
     caiuParaSimulado,

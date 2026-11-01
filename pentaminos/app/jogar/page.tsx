@@ -133,8 +133,7 @@ function GamePage() {
   }, [isRunning, setElapsedSeconds]);
 
   const handleRestart = () => {
-    // Depois que o algoritmo resolve,
-    // não permitimos reiniciar a partida.
+    // Bloqueado após resolver.
     if (autoSolved) {
       return;
     }
@@ -198,9 +197,7 @@ function GamePage() {
     row: number,
     col: number,
   ) => {
-    // ==========================================
-    // 1. COLOCAR UMA PEÇA
-    // ==========================================
+    // Colocar peça
 
     if (selectedInstanceId) {
       const selectedPiece = pieces.find(
@@ -277,8 +274,7 @@ function GamePage() {
               piece.origin !== null,
           );
 
-        // Apenas uma solução feita manualmente
-        // entra no ranking.
+        // Só solução manual entra no ranking.
         if (
           isFinished &&
           !hasRegisteredGame.current
@@ -305,9 +301,7 @@ function GamePage() {
       return;
     }
 
-    // ==========================================
-    // 2. RETIRAR UMA PEÇA
-    // ==========================================
+    // Retirar peça
 
     const owner = pieces.find(
       (piece) => {
@@ -373,8 +367,7 @@ function GamePage() {
     setSelectedInstanceId(null);
 
     try {
-      // O solver começa com todas as peças
-      // fora do tabuleiro.
+      // Solver começa do zero.
       const clearedPieces = pieces.map(
         (piece) => ({
           ...piece,
@@ -406,12 +399,7 @@ function GamePage() {
           outcome.placements,
         );
 
-        // Marca a partida como concluída
-        // para impedir qualquer registro
-        // posterior no ranking.
-        //
-        // IMPORTANTE:
-        // não chamamos finishGame aqui.
+        // Não entra no ranking.
         hasRegisteredGame.current =
           true;
       } else {

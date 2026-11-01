@@ -1,9 +1,7 @@
 import { PENTOMINOES } from "@/lib/mocks/pentominos";
 import { Cell, PentominoId } from "@/lib/types/pentomino";
 
-// As mensagens só dizem valid=false; o motivo é recalculado aqui com as
-// mesmas regras de visao/validador.py (5 casas, conexas, forma da peça
-// em uma das 8 orientações).
+// Mesmas regras de visao/validador.py.
 
 function normalizar(casas: Cell[]): string {
   const minR = Math.min(...casas.map(([r]) => r));
