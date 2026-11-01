@@ -95,9 +95,10 @@ export function Board({
 
   return (
     <div
-      className="grid w-fit border border-gray-200"
+      className="grid w-full border border-gray-200"
       style={{
-        gridTemplateColumns: `repeat(${config.cols}, 60px)`,
+        gridTemplateColumns: `repeat(${config.cols}, minmax(0, 1fr))`,
+        maxWidth: config.cols * 60,
       }}
     >
       {Array.from({ length: config.rows }).map((_, row) =>
@@ -124,7 +125,7 @@ export function Board({
               onMouseEnter={() => setHoveredCell([row, col])}
               onMouseLeave={() => setHoveredCell(null)}
               onClick={() => onCellClick?.(row, col)}
-              className="flex h-15 w-15 cursor-pointer select-none items-center justify-center border border-gray-200 text-lg font-bold text-white transition-all"
+              className="flex aspect-square cursor-pointer select-none items-center justify-center border border-gray-200 text-sm font-bold text-white transition-all sm:text-lg"
               style={{
                 backgroundColor:
                   color ?? (showPreview ? previewColor : "white"),
