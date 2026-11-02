@@ -162,7 +162,7 @@ def gerar(pasta: Path, saida: Path) -> str:
     P(_linha("---", "---", "---", "---", "---"))
     P(_linha("cor", *_resumo(rc)))
     P(_linha("forma", *_resumo(rf)))
-    P(_linha("combinado (cor; se houver peça inválida ou “?”, forma)", *_resumo(rk)))
+    P(_linha("combinado (decide por peça)", *_resumo(rk)))
     rs = cp.resultados("forma", com_vazio=False)
     P(_linha("forma sem `vazio.json` (casa vazia = “.” da paleta)", *_resumo(rs)))
     tempos = {}
@@ -240,9 +240,9 @@ def recomendacao(rc, rf, rk, rs, t3, mc, mf) -> str:
     descarte = {m: sum(r["incertas"] > CFG.max_incertas_mao for r in res.values()) for m, res in (("cor", mc), ("forma", mf))}
     linhas = [
         "## 6. Recomendação\n",
-        f"**Padrão: `identificacao = \"{CFG.identificacao}\"`.** O modo combinado roda o modo cor e, quando "
-        "ele tem peça inválida ou casa “?”, roda o forma e fica com o que tiver mais peças válidas (e menos “?”). Falta "
-        "confirmar com uma partida ao vivo com a câmera real.\n",
+        f"**Padrão: `identificacao = \"{CFG.identificacao}\"`.** O modo combinado roda os dois e decide por "
+        "peça: fica com a peça válida do modo forma e, onde o forma não resolve, com a peça válida do modo cor. "
+        "Falta confirmar com uma partida ao vivo com a câmera real.\n",
         f"- Fotos com gabarito: casas certas cor {c[0]}, forma {f[0]}, combinado {k[0]}; peças certas "
         f"cor {c[1]}, forma {f[1]}, combinado {k[1]}; vitória nos tabuleiros completos cor {c[2]}, "
         f"forma {f[2]}, combinado {k[2]}. A diferença cresce com o número de peças (seção 3).",
@@ -251,8 +251,11 @@ def recomendacao(rc, rf, rk, rs, t3, mc, mf) -> str:
     ]
     for n in falhas:
         r = t3[n]
-        linhas.append(f"  - `{n}` falha em todos os modos: {r['forma'][1]} casas “?” no forma e "
-                      f"{r['cor'][1]} no cor (acima de {CFG.max_incertas_mao} por quadro, o quadro é descartado).")
+        destino = "descartado" if r["combinado"][1] > CFG.max_incertas_mao else "publicado"
+        linhas.append(f"  - `{n}` falha em todos os modos: {r['combinado'][0]}/12 peças válidas e "
+                      f"{r['combinado'][1]} casas “?” no combinado (limite {CFG.max_incertas_mao}); o quadro é "
+                      f"{destino}, e as peças inválidas viram perguntas ao jogador depois de "
+                      f"{CFG.tempo_duvida_s:.0f} s.")
     linhas += [
         f"- Fotos com mão: descartadas em {descarte['forma']}/{len(mf)} (forma) e {descarte['cor']}/{len(mc)} (cor).",
         "- Custo: poucos milissegundos por quadro (seção 2), bem abaixo dos 100 ms do loop.\n",

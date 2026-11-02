@@ -35,10 +35,10 @@ A varredura usa as mesmas fotos da comparação; o 3º tabuleiro (seção 5) é 
 | --- | --- | --- | --- | --- |
 | cor | 96.0% | 73.2% | 0/3 | 0 |
 | forma | 100.0% | 100.0% | 3/3 | 0 |
-| combinado (cor; se houver peça inválida ou “?”, forma) | 100.0% | 100.0% | 3/3 | 0 |
+| combinado (decide por peça) | 100.0% | 100.0% | 3/3 | 0 |
 | forma sem `vazio.json` (casa vazia = “.” da paleta) | 100.0% | 100.0% | 3/3 | 0 |
 
-Tempo médio por foto só da etapa de rótulos (sem retificar): cor 0.1 ms, forma 1.7 ms, combinado 1.8 ms. O loop ao vivo roda a 10 quadros/s (100 ms por quadro).
+Tempo médio por foto só da etapa de rótulos (sem retificar): cor 0.2 ms, forma 1.7 ms, combinado 1.8 ms. O loop ao vivo roda a 10 quadros/s (100 ms por quadro).
 
 ## 3. Por número de peças no tabuleiro
 
@@ -115,11 +115,11 @@ INYYYYFUUU   INYYYYFUUU
 
 ## 6. Recomendação
 
-**Padrão: `identificacao = "combinado"`.** O modo combinado roda o modo cor e, quando ele tem peça inválida ou casa “?”, roda o forma e fica com o que tiver mais peças válidas (e menos “?”). Falta confirmar com uma partida ao vivo com a câmera real.
+**Padrão: `identificacao = "combinado"`.** O modo combinado roda os dois e decide por peça: fica com a peça válida do modo forma e, onde o forma não resolve, com a peça válida do modo cor. Falta confirmar com uma partida ao vivo com a câmera real.
 
 - Fotos com gabarito: casas certas cor 96.0%, forma 100.0%, combinado 100.0%; peças certas cor 73.2%, forma 100.0%, combinado 100.0%; vitória nos tabuleiros completos cor 0/3, forma 3/3, combinado 3/3. A diferença cresce com o número de peças (seção 3).
 - 3º tabuleiro, fora da calibração: vitória em 2/3 fotos no combinado, 2/3 no forma e 0/3 no cor.
-  - `WhatsApp Image 2026-10-29 at 13.51.32 (1)` falha em todos os modos: 4 casas “?” no forma e 4 no cor (acima de 10 por quadro, o quadro é descartado).
+  - `WhatsApp Image 2026-10-29 at 13.51.32 (1)` falha em todos os modos: 3/12 peças válidas e 4 casas “?” no combinado (limite 10); o quadro é publicado, e as peças inválidas viram perguntas ao jogador depois de 3 s.
 - Fotos com mão: descartadas em 4/4 (forma) e 4/4 (cor).
 - Custo: poucos milissegundos por quadro (seção 2), bem abaixo dos 100 ms do loop.
 
