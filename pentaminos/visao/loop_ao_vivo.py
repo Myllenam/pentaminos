@@ -69,7 +69,7 @@ async def executar(args):
                 try:
                     controle=json.loads(await asyncio.wait_for(ws.recv(), timeout=0.001))
                     if controle.get('type') == 'stop':
-                        LOG.info('Loop encerrado pelo navegador')
+                        LOG.info('Loop encerrado pelo navegador'); pipe.correcoes.limpar()
                         break
                     if controle.get('type') == 'pause': pausado=True; LOG.info('Loop pausado pelo navegador')
                     elif controle.get('type') == 'resume': pausado=False; LOG.info('Loop retomado pelo navegador')
@@ -77,7 +77,7 @@ async def executar(args):
                         LOG.info('Reinício solicitado; encerre e inicie uma nova sessão para reiniciar o pipeline')
                     elif controle.get('type') == 'assign_piece':
                         erro=pipe.atribuir(controle.get('cells'),controle.get('piece'))
-                        LOG.info('Jogador nomeou %s em %s%s',controle.get('piece'),controle.get('cells'),f' (recusado: {erro})' if erro else '')
+                        LOG.info('correção: %s em %s%s',controle.get('piece'),controle.get('cells'),f' (recusada: {erro})' if erro else '')
                 except asyncio.TimeoutError: pass
                 if pausado:
                     await asyncio.sleep(0.1); continue

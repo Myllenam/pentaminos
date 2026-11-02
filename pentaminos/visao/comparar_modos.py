@@ -193,7 +193,8 @@ def gerar(pasta: Path, saida: Path) -> str:
 
     # 4. fotos com mão
     P("## 4. Fotos com mão (devem ser descartadas)\n")
-    P(f"O pipeline descarta o quadro com mais de {CFG.max_incertas_mao} casas “?”.\n")
+    P(f"O pipeline descarta o quadro com mais de {CFG.max_incertas_mao} casas “?” na leitura por cor, "
+      "em qualquer modo (a coluna “cor”).\n")
     P(_linha("foto", "“?” — cor", "“?” — forma", "vitória — cor", "vitória — forma"))
     P(_linha(*["---"] * 5))
     mc, mf = cp.resultados("cor", fotos=cp.mao), cp.resultados("forma", fotos=cp.mao)
@@ -237,7 +238,7 @@ def recomendacao(rc, rf, rk, rs, t3, mc, mf) -> str:
     c, f, k, s = _resumo(rc), _resumo(rf), _resumo(rk), _resumo(rs)
     vit = {m: sum(r[m][2] for r in t3.values()) for m in ("cor", "forma", "combinado")}
     falhas = [n for n, r in t3.items() if not r["combinado"][2]]
-    descarte = {m: sum(r["incertas"] > CFG.max_incertas_mao for r in res.values()) for m, res in (("cor", mc), ("forma", mf))}
+    descarte = sum(r["incertas"] > CFG.max_incertas_mao for r in mc.values())
     linhas = [
         "## 6. Recomendação\n",
         f"**Padrão: `identificacao = \"{CFG.identificacao}\"`.** O modo combinado roda os dois e decide por "
@@ -251,13 +252,14 @@ def recomendacao(rc, rf, rk, rs, t3, mc, mf) -> str:
     ]
     for n in falhas:
         r = t3[n]
-        destino = "descartado" if r["combinado"][1] > CFG.max_incertas_mao else "publicado"
+        destino = "descartado" if r["cor"][1] > CFG.max_incertas_mao else "publicado"
         linhas.append(f"  - `{n}` falha em todos os modos: {r['combinado'][0]}/12 peças válidas e "
-                      f"{r['combinado'][1]} casas “?” no combinado (limite {CFG.max_incertas_mao}); o quadro é "
+                      f"{r['combinado'][1]} casas “?” no combinado; para o descarte contam as {r['cor'][1]} da "
+                      f"leitura por cor (limite {CFG.max_incertas_mao}), então o quadro é "
                       f"{destino}, e as peças inválidas viram perguntas ao jogador depois de "
-                      f"{CFG.tempo_duvida_s:.0f} s.")
+                      f"{CFG.segundos_duvida:.0f} s.")
     linhas += [
-        f"- Fotos com mão: descartadas em {descarte['forma']}/{len(mf)} (forma) e {descarte['cor']}/{len(mc)} (cor).",
+        f"- Fotos com mão: descartadas em {descarte}/{len(mc)}.",
         "- Custo: poucos milissegundos por quadro (seção 2), bem abaixo dos 100 ms do loop.\n",
         "**Limites desta medição:**\n",
         "- O gabarito dá nome às peças pela forma e marca ocupação por croma; isso favorece o modo forma "

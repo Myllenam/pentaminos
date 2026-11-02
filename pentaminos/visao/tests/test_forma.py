@@ -99,17 +99,17 @@ class TestPecasInvalidas(unittest.TestCase):
             g[r][c] = "P"
         estado = validar_estado(por_forma(g))
         self.assertEqual(estado.pecas["L"].motivo, "4 casas (esperado 5)")
-        self.assertEqual(estado.pecas["P"].motivo, "7 casas (esperado 5)")
+        self.assertEqual(len(estado.pecas["P"].casas), 5)
+        self.assertEqual(estado.incertas, 2)
         self.assertFalse(estado.vitoria)
 
-    def test_duas_pecas_com_a_mesma_forma_ficam_invalidas(self):
+    def test_segunda_peca_com_a_mesma_forma_nao_rouba_a_letra(self):
         f = orientacoes("F")[0]
         g = colocar_peca(colocar_peca(grade_vazia(), "F", f, 0, 0), "F", f, 2, 6)
-        cores = cores_de(g, cores=dict(CORES_APP))
-        cores[2:, 6:] = cores_de(colocar_peca(grade_vazia(), "X", f, 2, 6))[2:, 6:]
-        estado = validar_estado(classificar_forma(cores, PALETA, CFG))
+        estado = validar_estado(por_forma(g))
         self.assertEqual(list(estado.pecas), ["F"])
-        self.assertEqual(estado.pecas["F"].motivo, "10 casas (esperado 5)")
+        self.assertTrue(estado.pecas["F"].valida)
+        self.assertEqual(estado.incertas, 5)
 
     def test_cor_intermediaria_vira_incerta(self):
         vazio = PALETA.cores["."]
@@ -117,6 +117,32 @@ class TestPecasInvalidas(unittest.TestCase):
         direcao = (PALETA.cores["X"] - vazio) / np.linalg.norm((PALETA.cores["X"] - vazio) * [CFG.peso_l, 1, 1])
         cores[0, 0] = vazio + direcao * CFG.limiar_ocupada
         self.assertEqual(classificar_forma(cores, PALETA, CFG)[0][0], "?")
+
+
+class TestNaoChutar(unittest.TestCase):
+    V = ((0, 0), (1, 0), (2, 0), (2, 1), (2, 2))
+
+    def _ler(self, g):
+        cores = cores_de(g)
+        return classificar_forma(cores, PALETA, CFG), classificar_combinado(cores, PALETA, Config())
+
+    def test_casa_sem_solucao_com_a_cor_de_peca_valida_vira_incerta(self):
+        g = colocar_peca(grade_vazia(), "V", self.V, 1, 1)
+        for r, c in ((1, 6), (1, 7), (2, 6), (2, 7)):
+            g[r][c] = "V"
+        for resultado in self._ler(g):
+            estado = validar_estado(resultado)
+            self.assertTrue(estado.pecas["V"].valida)
+            self.assertEqual([resultado[r][c] for r, c in ((1, 6), (1, 7), (2, 6), (2, 7))], ["?"] * 4)
+
+    def test_nenhuma_letra_fica_com_mais_de_5_casas(self):
+        g = grade_vazia()
+        for c in range(8):
+            g[2][c] = "T"
+        for resultado in self._ler(g):
+            contagem = [sum(l.count(x) for l in resultado) for x in LETRAS]
+            self.assertLessEqual(max(contagem), 5)
+            self.assertEqual(sum(l.count("?") for l in resultado), 3)
 
 
 class TestCombinado(unittest.TestCase):
@@ -282,7 +308,8 @@ class TestCasosReais(unittest.TestCase):
         for resultado in ler_real(g)[:2]:
             estado = validar_estado(resultado)
             self.assertEqual(estado.pecas["L"].motivo, "4 casas (esperado 5)")
-            self.assertEqual(estado.pecas["P"].motivo, "7 casas (esperado 5)")
+            self.assertEqual(len(estado.pecas["P"].casas), 5)
+            self.assertEqual(estado.incertas, 2)
 
     def test_tabuleiro_inteiro_num_grupo_so_respeita_o_prazo(self):
         sol = next(solucoes())

@@ -29,7 +29,10 @@ class Config:
     limiar_ocupada_fraca: float = 10.0  # casa vazia que pode completar uma peça (reflexo)
     limiar_croma_fraca: float = 6.0  # croma acima do papel que também conta como fraca
     tempo_max_forma_ms: float = 40.0 # prazo da busca por forma em cada quadro
-    tempo_duvida_s: float = 3.0      # peça inválida há mais disto vira pergunta na tela
+    segundos_duvida: float = 2.0     # dúvida estável há mais disto vira pergunta na tela
+    margem_encaixe: float = 30.0     # tabuleiro cheio: folga mínima do melhor encaixe sobre o 2º
+    limiar_fora_encaixe: float = 30.0  # casa longe da cor da letra do encaixe
+    max_fora_encaixe: int = 8        # mais casas longe que isto (mão, peça fora): encaixe recusado
     # --- estabilização / oclusão ---
     quadros_estaveis: int = 3        # quadros consecutivos iguais para publicar
     janela_votos: int = 7            # cada casa = maioria nos últimos N quadros aceitos
