@@ -135,8 +135,7 @@ export async function listarRankingFisico(): Promise<SessaoServidor[]> {
     .slice(0, 10);
 }
 
-// Ordem em que as peças que ficaram no tabuleiro foram colocadas pela
-// última vez, refazendo as jogadas na ordem de sequencia.
+// Ordem final de colocação, refazendo as jogadas por sequencia.
 export function ordemDasJogadas(jogadas: JogadaServidor[]): PentominoId[] {
   const ordem: PentominoId[] = [];
 

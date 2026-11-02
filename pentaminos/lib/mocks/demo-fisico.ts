@@ -1,7 +1,6 @@
 import { MensagemFisico } from "../types/fisico";
 
-// demo_sintetico.jsonl no formato do contrato (grid em lista de listas,
-// como o backend/tests/conftest.py também converte).
+// demo_sintetico.jsonl com grid em lista de listas.
 export const DEMO_FISICO: MensagemFisico[] = [
   {"type":"board_state","session":"demo","ts":1793141067,"grid":[[".",".",".",".",".",".",".",".",".","."],[".",".",".",".",".",".",".",".",".","."],[".",".",".",".",".",".",".",".",".","."],[".",".",".",".",".",".",".",".",".","."],[".",".",".",".",".",".",".",".",".","."],[".",".",".",".",".",".",".",".",".","."]]},
   {"type":"board_state","session":"demo","ts":1793141068,"grid":[[".",".",".",".",".",".",".",".",".","."],[".",".",".",".",".",".",".",".",".","."],[".",".",".",".",".",".",".",".",".","."],[".",".","F",".",".",".",".",".",".","."],[".",".","F","F",".",".",".",".",".","."],[".","F","F",".",".",".",".",".",".","."]]},

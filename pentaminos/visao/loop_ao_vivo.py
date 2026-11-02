@@ -1,10 +1,4 @@
-"""Loop da visão: câmera ou partida sintética, aproximadamente 10 quadros/s.
-
-Exemplos (PowerShell, dentro de visao):
-  python loop_ao_vivo.py --fonte sintetica --sessao ID
-  python loop_ao_vivo.py --fonte 0 --sessao ID
-  python loop_ao_vivo.py --fonte http://192.168.0.10:4747/video --sessao ID
-"""
+"""Loop da visão: câmera ou fonte sintética, ~10 quadros/s (exemplos no README)."""
 from __future__ import annotations
 import argparse, asyncio, json, logging, time
 from pathlib import Path

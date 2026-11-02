@@ -335,8 +335,7 @@ function encaixarBacktracking(
 const TENTATIVAS_SEM_REPETICAO = 40;
 const TENTATIVAS_COM_REPETICAO = 60;
 
-// Gera um tabuleiro com solução garantida.
-// Tenta peças distintas, depois repetidas, depois só "I".
+// Tabuleiro com solução: peças distintas, depois repetidas, depois só "I".
 export function gerarTabuleiro(quantidadePecas: number): GeneratedBoard {
   const n = Math.min(Math.max(quantidadePecas, 3), 12);
   const candidatos = calcularDimensoesCandidatas(n);

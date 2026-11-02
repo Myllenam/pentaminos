@@ -1,5 +1,4 @@
-// Mede o solver com mais de 12 peças.
-// Rodar: npx tsx scripts/avaliarEscalabilidade.ts (REPETICOES, TAMANHOS, LIMITE_S, SEED)
+// Mede o solver com mais de 12 peças (env: REPETICOES, TAMANHOS, LIMITE_S, SEED).
 
 import * as fs from "node:fs";
 import * as os from "node:os";

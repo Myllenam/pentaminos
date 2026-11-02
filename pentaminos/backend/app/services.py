@@ -99,13 +99,7 @@ def abandonar_sessao(db: Session, sessao_id: str) -> Sessao:
 
 
 def registrar_dica(db: Session, sessao_id: str) -> Sessao:
-    """Conta uma dica usada.
-
-    Regra: cada dica mostrada ao jogador soma 1 em dicas_usadas, sem limite e
-    sem descontar nada do tempo. Só vale em sessão em andamento. O incremento é
-    feito no banco (igual a numero_jogadas), para dois pedidos simultâneos não
-    se perderem.
-    """
+    """Soma 1 em dicas_usadas (só em andamento; incremento no banco)."""
     sessao = buscar_sessao(db, sessao_id)
     _exigir_em_andamento(sessao)
     db.execute(
@@ -195,10 +189,7 @@ def registrar_evento(db: Session, mensagem: Mapping[str, Any]) -> Jogada:
 def registrar_evento_da_sessao(
     db: Session, sessao_id: str, mensagem: Mapping[str, Any]
 ) -> Jogada:
-    """Versão para a rota REST: o id da sessão vem da URL.
-
-    O campo 'session' do corpo é opcional; se vier, tem que ser o mesmo da URL.
-    """
+    """Como registrar_evento, com o id da sessão vindo da URL."""
     if not isinstance(mensagem, Mapping):
         raise DadosInvalidos("O evento deve ser um objeto JSON.")
     declarada = mensagem.get("session")

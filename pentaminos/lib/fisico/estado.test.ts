@@ -21,8 +21,7 @@ const JSONL = resolve(
   "backend/tests/fixtures/demo_sintetico.jsonl",
 );
 
-// O .jsonl guarda a grade como lista de strings; o contrato usa lista de
-// listas. Mesma conversão do backend/tests/conftest.py.
+// Grade do .jsonl vira lista de listas, como no conftest.py.
 function lerDemo(): unknown[] {
   return readFileSync(JSONL, "utf8")
     .split(/\r?\n/)

@@ -1,7 +1,6 @@
 import { Cell, PentominoId } from "./pentomino";
 
-// Contrato do WebSocket do modo físico: veja "Contrato do WebSocket" em
-// backend/README.md. Os tipos abaixo são as mensagens que o navegador recebe.
+// Mensagens do WebSocket ("Contrato do WebSocket" em backend/README.md).
 
 export const LINHAS_FISICO = 6;
 export const COLUNAS_FISICO = 10;

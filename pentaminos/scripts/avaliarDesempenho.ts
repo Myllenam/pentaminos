@@ -1,5 +1,4 @@
-// Mede o solver de 3 a 12 peças.
-// Rodar: npx tsx scripts/avaliarDesempenho.ts (REPETICOES, SEED opcionais)
+// Mede o solver de 3 a 12 peças (env: REPETICOES, SEED).
 
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -27,7 +26,7 @@ const REPETICOES_GRANDES = Math.min(REPETICOES, 10);
 const TAMANHOS_COMPARACAO = [6, 7, 8, 9, 10];
 const REPETICOES_COMPARACAO = REPETICOES;
 
-/** Limite de tempo por instância (ms). Instâncias que estouram contam como "não resolvidas". */
+/** Limite por instância (ms); estourar conta como "não resolvida". */
 const LIMITE_TEMPO_MS = 20_000;
 const LIMITE_TEMPO_COMPARACAO_MS = 5_000;
 

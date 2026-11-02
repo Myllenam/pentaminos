@@ -1,33 +1,4 @@
-"""Atividade 4 — calibrar o código da visão com as fotos reais.
-
-Mede as cores nas fotos (e não nos códigos hex), lista os pares perigosos, compara
-espaços de cor, escolhe o limiar de "incerto" e diz se o plano B (ArUco) é necessário.
-
-Uso (PowerShell):
-    python calibrar_fotos.py --pasta ..\\fotos-pentaminos
-    python calibrar_fotos.py --pasta ..\\fotos-pentaminos --saida calibracao
-
-Gera em --saida (padrão: calibracao/):
-    paleta.json              paleta Lab medida no tabuleiro (formato de Paleta.carregar)
-    relatorio_calibracao.md  números e decisões
-
-Nomes esperados na pasta (os mesmos do zip de fotos):
-    tabuleiro_vazio.jpeg, tabuleiro_vazio_2/3.jpeg    tabuleiro sem peças
-    peca_f.jpeg ... peca_z.jpeg                       uma peça sozinha
-    tabuleiro_1_{1..11}_pecas.jpeg, tabuleiro_1_completo.jpeg   sequência: +1 peça por foto
-    tabuleiro_2_{1..11}_pecas.jpeg, tabuleiro_2_completo.jpeg   (idem, outra solução)
-    *_luz_diferente.jpeg, *_mao*.jpeg, tabuleiro_z.jpeg, peca_n_2.jpeg   casos difíceis
-    WhatsApp Image ... .jpeg                          um 3º tabuleiro completo, só para teste
-
-COMO O GABARITO É FEITO (sem olhar a cor): em cada foto da sequência as casas novas
-são as que ganharam cor (croma alto contra o papel); como são 5, a FORMA delas diz a
-letra (pentaminos.forma_corresponde). Assim a cor das peças é medida contra um
-gabarito independente dela.
-
-ALINHAMENTO: o celular/papel se mexeu entre as fotos (30–50 px), então cada foto é
-alinhada pelos 4 cantos da folha branca antes de usar a mesma homografia da grade.
-No uso real (celular fixo no tripé) basta a localizacao.py uma vez.
-"""
+"""Calibra paleta e limiar com as fotos reais (detalhes no visao/README.md)."""
 from __future__ import annotations
 
 import argparse
@@ -48,8 +19,7 @@ FR = CFG.fracao_central
 CHAVES = list(LETRAS) + [VAZIO]
 LIMIAR_OCUPADA = 10.0   # croma (a,b) acima disto = casa com peça; papel fica perto de 0
 
-# --- Referência: medida em tabuleiro_vazio.jpeg (foto em pé, 960x1280) --------------
-# Cantos da grade 6x10 na foto, na ordem sup.esq, sup.dir, inf.dir, inf.esq da FOTO.
+# Cantos da grade em tabuleiro_vazio.jpeg (sup.esq, sup.dir, inf.dir, inf.esq).
 GRADE_REF = [(271, 191), (741, 191), (741, 976), (271, 976)]
 # Faixas de papel branco fora da moldura (x0, x1, y0, y1): referência de exposição.
 TIRAS_BRANCO = [(165, 215, 200, 950), (800, 860, 200, 950),
@@ -57,9 +27,7 @@ TIRAS_BRANCO = [(165, 215, 200, 950), (800, 860, 200, 950),
 TAM_REF = (960, 1280)
 
 
-# =====================================================================================
 # Alinhamento
-# =====================================================================================
 
 def _ordenar(q: np.ndarray) -> np.ndarray:
     q = np.asarray(q, np.float32)
@@ -83,8 +51,7 @@ def _quad_papel_bruto(img: np.ndarray):
 
 
 def quad_papel(img: np.ndarray, esperado: np.ndarray | None = None):
-    """4 cantos da folha (TL, TR, BR, BL). Com uma mão cobrindo um canto, refaz esse
-    canto pela regra do paralelogramo usando os outros três."""
+    """4 cantos da folha (TL, TR, BR, BL); canto coberto é refeito por paralelogramo."""
     q, area = _quad_papel_bruto(img)
     h, w = img.shape[:2]
     if q is not None and area > 0.55 * h * w:
@@ -106,8 +73,7 @@ class Alinhador:
     def __init__(self, foto_vazia: np.ndarray):
         self.q0 = quad_papel(foto_vazia)
         g = np.array(GRADE_REF, np.float32)
-        # a foto está em pé; girar 90° (horário) põe o lado maior na horizontal:
-        # sup.esq = inf.esq da foto, sup.dir = sup.esq, inf.dir = sup.dir, inf.esq = inf.dir
+        # Foto em pé: gira 90° no sentido horário para o lado maior ficar na horizontal.
         origem = np.array([g[3], g[0], g[1], g[2]], np.float32)
         destino = np.array([[0, 0], [CFG.largura_px, 0],
                             [CFG.largura_px, CFG.altura_px], [0, CFG.altura_px]], np.float32)
@@ -136,9 +102,7 @@ class Alinhador:
         return cv2.warpPerspective(ref, self.h_grade, (CFG.largura_px, CFG.altura_px))
 
 
-# =====================================================================================
 # Gabarito
-# =====================================================================================
 
 def _ocupadas(cel: np.ndarray) -> np.ndarray:
     return np.hypot(cel[..., 1], cel[..., 2]) > LIMIAR_OCUPADA
@@ -179,8 +143,7 @@ def gabarito_das_sequencias(cel: dict[str, np.ndarray], nomes: list[str]) -> dic
 
 
 def gabarito_dos_casos_dificeis(cel: dict[str, np.ndarray], gt) -> dict[str, list[list[str]]]:
-    """Mão sobre o tabuleiro, sombra e peças soltas: o gabarito vem da cena sem a mão
-    ou da forma da peça (cor não é usada)."""
+    """Casos difíceis (mão, sombra, peça solta): gabarito sem usar a cor."""
     extra: dict[str, list[list[str]]] = {}
     vazio = [[VAZIO] * 10 for _ in range(6)]
     for n in ("tabuleiro_vazio_mao", "tabuleiro_vazio_mao_em_cima"):
@@ -203,9 +166,7 @@ def gabarito_dos_casos_dificeis(cel: dict[str, np.ndarray], gt) -> dict[str, lis
     return extra
 
 
-# =====================================================================================
 # Medidas
-# =====================================================================================
 
 def _features(lab: np.ndarray, modo: str) -> np.ndarray:
     lab = np.asarray(lab, np.float32).reshape(-1, 3)
@@ -215,7 +176,7 @@ def _features(lab: np.ndarray, modo: str) -> np.ndarray:
         return lab * pesos_lab(0.5)
     if modo == "ab":
         return lab[:, 1:]
-    # HSV em coordenadas cartesianas (o matiz dá a volta em 0°/360°, então não se subtrai direto)
+    # HSV em coordenadas cartesianas (o matiz é circular).
     bgr = cv2.cvtColor(lab.reshape(-1, 1, 3), cv2.COLOR_LAB2BGR).reshape(-1, 3)
     h, s, v = cv2.cvtColor(bgr.reshape(-1, 1, 3), cv2.COLOR_BGR2HSV).reshape(-1, 3).T
     a = np.deg2rad(h)
@@ -269,9 +230,7 @@ def validacao_cruzada(cel, gt, grupos, modo, fonte):
     return erros, total, conf, np.array(d_ok), np.array(d_erro)
 
 
-# =====================================================================================
 # Relatório
-# =====================================================================================
 
 def _linha(*c) -> str:
     return "| " + " | ".join(str(x) for x in c) + " |"
@@ -369,7 +328,7 @@ def gerar(pasta: Path, saida: Path) -> str:
       "O L não pode sumir (V e Z só diferem nele) nem pesar demais (sombra no papel parece cor). "
       "O que mais derruba o erro é a paleta ser medida **no tabuleiro montado**, não com as peças soltas.\n")
 
-    # --- pares que não separam ------------------------------------------------------------
+    # Pares que não separam
     _, _, conf, d_ok, d_er = resultado[("lab_l05", "tabuleiro")]
     n_por = {k: int((y_all == k).sum()) for k in CHAVES}
     P("## 3. Pares perigosos (resultado cruzado, Lab L×0,5)\n")
@@ -385,7 +344,7 @@ def gerar(pasta: Path, saida: Path) -> str:
             veredito.append((a, b, n_conf, taxa, dist))
     P("")
 
-    # --- limiar -------------------------------------------------------------------------
+    # Limiar
     P("## 4. Limiar de “incerto”\n")
     P(f"Distância (L×{CFG.peso_l}) até a cor mais próxima. Acertos do teste cruzado: mediana "
       f"{np.median(d_ok):.1f}, p95 {np.percentile(d_ok, 95):.1f}, p99 {np.percentile(d_ok, 99):.1f}. "
@@ -423,7 +382,7 @@ def gerar(pasta: Path, saida: Path) -> str:
               f"→ {'descartado' if (pior_mao[n] > CFG.limiar_incerto).sum() > CFG.max_incertas else 'passaria'}")
     P("")
 
-    # --- teste fora da amostra --------------------------------------------------------------
+    # Teste fora da amostra
     teste = [n for n in cel if n.startswith("WhatsApp")]
     if teste:
         P("## 5. Teste em tabuleiro que não entrou na calibração\n")
@@ -442,7 +401,7 @@ def gerar(pasta: Path, saida: Path) -> str:
             P(f"- `{n}`: {12 - len(erradas)}/12 peças com forma correta{quais}, {inc} casas incertas → {destino}")
         P("")
 
-    # --- plano B -----------------------------------------------------------------------------
+    # Plano B
     P("## 6. Plano B (ArUco)\n")
     if veredito:
         pares = ", ".join(f"{a}–{b}" for a, b, *_ in veredito)
