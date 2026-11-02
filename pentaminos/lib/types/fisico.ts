@@ -1,6 +1,6 @@
 import { Cell, PentominoId } from "./pentomino";
 
-// Mensagens do WebSocket ("Contrato do WebSocket" em backend/README.md).
+// Mensagens do WebSocket (docs/contrato-websocket.md).
 
 export const LINHAS_FISICO = 6;
 export const COLUNAS_FISICO = 10;

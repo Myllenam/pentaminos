@@ -12,6 +12,7 @@ from sintetico import CORES_APP, FUNDO_MDF, CANTOS_PADRAO, projetar, renderizar,
 from gerar_solucoes import solucoes
 from localizacao import calcular_homografia
 from visao import Paleta
+from forma import carregar_vazio
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 LOG=logging.getLogger('pentaminos.vision')
@@ -50,7 +51,8 @@ async def executar(args):
         if not hpath.exists() or not ppath.exists():
             raise FileNotFoundError('Calibre antes a câmera: faltam homografia.json ou paleta.json.')
         H,_=carregar_homografia(hpath); paleta=Paleta.carregar(ppath)
-    pipe=Pipeline(cfg,H,paleta,sessao=args.sessao)
+    vazio=None if args.fonte == 'sintetica' else carregar_vazio(cfg.arquivo_vazio)
+    pipe=Pipeline(cfg,H,paleta,sessao=args.sessao,cores_vazio=vazio)
     ws_url=args.ws_url.rstrip('/')+f'/ws/sessions/{args.sessao}?role=vision'
     intervalo=1/max(1,args.fps or cfg.fps_alvo); anterior_status=None; jogadas=0; inicio=time.monotonic(); pausado=False
     try:
