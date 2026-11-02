@@ -63,8 +63,9 @@ Resultado (detalhes e tabelas em `calibracao/relatorio_calibracao.md`):
 
 ## Modos de identificação
 
-`config.py` tem `identificacao`: `"cor"` (padrão) ou `"forma"`. Os dois produzem a mesma grade 6×10
-(letra, `.` ou `?`), então validador, eventos, backend e tela não mudam.
+`config.py` tem `identificacao`: `"combinado"` (padrão), `"cor"` ou `"forma"`. Todos produzem a mesma
+grade 6×10 (letra, `.` ou `?`), então validador, eventos, backend e tela não mudam. O **combinado** usa o
+modo cor e, se ele tiver peça inválida ou casa `?`, roda o forma e fica com o que tiver mais peças válidas.
 
 | | Modo `"cor"` | Modo `"forma"` (`forma.py`) |
 |---|---|---|
@@ -73,11 +74,11 @@ Resultado (detalhes e tabelas em `calibracao/relatorio_calibracao.md`):
 | Peças de cor parecida encostadas (V–Z, I–T, U–Y) | Uma casa trocada invalida a peça. | Viram um grupo de 10, 15… casas, dividido em pentaminós por cobertura exata (Algoritmo X do `gerar_solucoes.py`); havendo mais de uma divisão, vence a de menos letras repetidas e, depois, a de cor mais perto da paleta. |
 | Peça inválida | Letra com ≠ 5 casas, desconectada ou forma errada. | Grupo que não se divide em pentaminós (ex.: 4 ou 7 casas) volta para o modo cor casa a casa, e o validador acusa como antes. Duas peças com a mesma forma recebem a mesma letra e o validador acusa as 10 casas. |
 
-Para trocar, passe um JSON no `--config`:
+Para usar outro modo, passe um JSON no `--config`:
 
 ```powershell
-'{"identificacao": "forma"}' | Out-File -Encoding ascii forma.json
-python loop_ao_vivo.py --fonte 0 --sessao ID --config forma.json
+'{"identificacao": "cor"}' | Out-File -Encoding ascii cor.json
+python loop_ao_vivo.py --fonte 0 --sessao ID --config cor.json
 ```
 
 Limiares do modo forma em `config.py`: `limiar_ocupada`, `margem_ocupada`, `limiar_mesma_peca` e
@@ -85,7 +86,7 @@ Limiares do modo forma em `config.py`: `limiar_ocupada`, `margem_ocupada`, `limi
 no enquadramento da homografia: `python forma.py foto_do_tabuleiro_vazio.jpg` (grava `calibracao/vazio.json`).
 
 A comparação entre os modos nas fotos reais está em `calibracao/comparacao_modos.md`
-(`python comparar_modos.py --pasta fotos-pentaminos`). O padrão continua `"cor"` até a equipe decidir.
+(`python comparar_modos.py --pasta fotos-pentaminos`).
 
 ## Regras e decisões
 

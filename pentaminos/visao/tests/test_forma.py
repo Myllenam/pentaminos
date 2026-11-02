@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from config import Config
-from forma import classificar_forma, divisoes
+from forma import classificar_combinado, classificar_forma, divisoes
 from gerar_solucoes import solucoes
 from localizacao import calcular_homografia
 from pentaminos import LETRAS, orientacoes
@@ -117,14 +117,41 @@ class TestPecasInvalidas(unittest.TestCase):
         self.assertEqual(classificar_forma(cores, PALETA, CFG)[0][0], "?")
 
 
+class TestCombinado(unittest.TestCase):
+    CFG = Config()
+
+    def test_combinado_e_o_padrao(self):
+        self.assertEqual(self.CFG.identificacao, "combinado")
+
+    def test_usa_o_modo_cor_quando_ele_funciona(self):
+        sol = next(solucoes())
+        cores = cores_de(sol)
+        por_cor, _ = classificar(cores, PALETA, CFG.limiar_incerto, CFG.peso_l)
+        self.assertTrue(validar_estado(por_cor).vitoria)
+        self.assertEqual(classificar_combinado(cores, PALETA, self.CFG), por_cor)
+
+    def test_usa_o_modo_forma_quando_o_cor_falha(self):
+        sol = next(solucoes())
+        cores = cores_de(sol, dict(CORES_APP, Z=CORES_APP["V"], T=CORES_APP["I"]))
+        por_cor, _ = classificar(cores, PALETA, CFG.limiar_incerto, CFG.peso_l)
+        self.assertTrue(validar_estado(por_cor).invalidas)
+        self.assertEqual(classificar_combinado(cores, PALETA, self.CFG), sol)
+
+    def test_peca_invalida_nos_dois_modos_continua_invalida(self):
+        g = grade_vazia()
+        for r, c in ((0, 0), (0, 1), (1, 0), (1, 1)):
+            g[r][c] = "L"
+        estado = validar_estado(classificar_combinado(cores_de(g), PALETA, self.CFG))
+        self.assertEqual(estado.pecas["L"].motivo, "4 casas (esperado 5)")
+
+
 class TestPipelineEModoCor(unittest.TestCase):
     H = calcular_homografia(CANTOS_PADRAO, CFG.largura_px, CFG.altura_px)
 
-    def test_modo_cor_e_o_padrao_e_nao_mudou(self):
-        self.assertEqual(Config().identificacao, "cor")
+    def test_modo_cor_nao_mudou(self):
         sol = next(solucoes())
         quadro = com_ruido(projetar(renderizar(sol)), sigma=4, rng=np.random.default_rng(5))
-        pipe = Pipeline(Config(quadros_estaveis=1), self.H, PALETA)
+        pipe = Pipeline(Config(identificacao="cor", quadros_estaveis=1), self.H, PALETA)
         msg = pipe.processar(quadro, ts=1).mensagens[0]
         from localizacao import retificar
         topo = retificar(quadro, self.H, CFG.largura_px, CFG.altura_px)

@@ -12,6 +12,7 @@ from config import Config
 from gerar_solucoes import _resolver
 from pentaminos import LETRAS, normalizar, orientacoes
 from visao import INCERTO, VAZIO, Paleta, classificar, pesos_lab
+from validador import validar_estado
 
 Celula = tuple[int, int]
 
@@ -137,6 +138,22 @@ def classificar_forma(cores: np.ndarray, paleta: Paleta, cfg: Config,
             for r, c in pecas:
                 grade[r][c] = letra
     return grade
+
+
+def _pontos(grade, cfg: Config) -> tuple[int, int]:
+    estado = validar_estado(grade, cfg.pecas, cfg.espelhar)
+    return sum(p.valida for p in estado.pecas.values()), -estado.incertas
+
+
+def classificar_combinado(cores: np.ndarray, paleta: Paleta, cfg: Config,
+                          cores_vazio: np.ndarray | None = None) -> list[list[str]]:
+    """Modo cor; se houver peça inválida ou "?", fica com o forma quando ele for melhor."""
+    por_cor, _ = classificar(cores, paleta, cfg.limiar_incerto, cfg.peso_l)
+    estado = validar_estado(por_cor, cfg.pecas, cfg.espelhar)
+    if not estado.invalidas and not estado.incertas:
+        return por_cor
+    por_forma = classificar_forma(cores, paleta, cfg, cores_vazio)
+    return por_forma if _pontos(por_forma, cfg) > _pontos(por_cor, cfg) else por_cor
 
 
 def carregar_vazio(caminho: str | Path) -> np.ndarray | None:

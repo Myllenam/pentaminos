@@ -20,7 +20,7 @@ class Config:
     # --- classificação ---
     peso_l: float = 0.5              # peso da luminosidade (L) na distância Lab; a, b valem 1
     limiar_incerto: float = 16.0     # distância Lab ponderada máx. até a cor mais próxima
-    identificacao: str = "cor"       # "cor" ou "forma"
+    identificacao: str = "combinado" # "cor", "forma" ou "combinado" (cor; se falhar, forma)
     # --- modo "forma" ---
     limiar_ocupada: float = 26.0     # vazia × ocupada (distância à casa vazia)
     margem_ocupada: float = 4.0      # faixa do limiar_ocupada que vira "?"
@@ -39,8 +39,8 @@ class Config:
     arquivo_vazio: str = "calibracao/vazio.json"   # cor de cada casa vazia
 
     def __post_init__(self):
-        if self.identificacao not in ("cor", "forma"):
-            raise ValueError(f"identificacao deve ser 'cor' ou 'forma', não {self.identificacao!r}")
+        if self.identificacao not in ("cor", "forma", "combinado"):
+            raise ValueError(f"identificacao inválida: {self.identificacao!r}")
 
     @property
     def largura_px(self) -> int:

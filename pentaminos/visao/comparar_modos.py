@@ -13,7 +13,7 @@ import numpy as np
 from calibrar_fotos import (FR, Alinhador, amostras, gabarito_das_sequencias,
                             gabarito_dos_casos_dificeis, paleta_mediana)
 from config import Config
-from forma import classificar_forma, distancia
+from forma import classificar_combinado, classificar_forma, distancia
 from pentaminos import LETRAS
 from validador import validar_estado
 from visao import INCERTO, VAZIO, Paleta, classificar, cores_das_celulas
@@ -40,6 +40,8 @@ def prever(cores, modo: str, pal: dict, cfg: Config, vazio) -> list[list[str]]:
     paleta = Paleta({k: np.asarray(v, np.float32) for k, v in pal.items()})
     if modo == "forma":
         return classificar_forma(cores, paleta, cfg, vazio)
+    if modo == "combinado":
+        return classificar_combinado(cores, paleta, cfg, vazio)
     return classificar(cores, paleta, cfg.limiar_incerto, cfg.peso_l)[0]
 
 
@@ -153,39 +155,41 @@ def gerar(pasta: Path, saida: Path) -> str:
       f"distância entre casas da mesma peça ({mesma.max():.1f}), para uma peça não se partir com outra luz.\n")
 
     # 2. geral
-    rc, rf = cp.resultados("cor"), cp.resultados("forma")
+    rc, rf, rk = cp.resultados("cor"), cp.resultados("forma"), cp.resultados("combinado")
     P("## 2. Resultado geral (fotos com gabarito)\n")
     P(_linha("modo", "casas certas", "peças com nome e casas certos", "vitórias (tabuleiros completos)",
              "vitórias falsas (incompletos)"))
     P(_linha("---", "---", "---", "---", "---"))
     P(_linha("cor", *_resumo(rc)))
     P(_linha("forma", *_resumo(rf)))
+    P(_linha("combinado (cor; se houver peça inválida ou “?”, forma)", *_resumo(rk)))
     rs = cp.resultados("forma", com_vazio=False)
     P(_linha("forma sem `vazio.json` (casa vazia = “.” da paleta)", *_resumo(rs)))
     tempos = {}
-    for modo in ("cor", "forma"):
+    for modo in ("cor", "forma", "combinado"):
         t0 = time.perf_counter()
         for _ in range(5):
             cp.resultados(modo)
         tempos[modo] = 1000 * (time.perf_counter() - t0) / (5 * len(fotos))
     P(f"\nTempo médio por foto só da etapa de rótulos (sem retificar): cor {tempos['cor']:.1f} ms, "
-      f"forma {tempos['forma']:.1f} ms. O loop ao vivo roda a {CFG.fps_alvo} quadros/s (100 ms por quadro).\n")
+      f"forma {tempos['forma']:.1f} ms, combinado {tempos['combinado']:.1f} ms. O loop ao vivo roda a {CFG.fps_alvo} quadros/s (100 ms por quadro).\n")
 
     # 3. por número de peças
     P("## 3. Por número de peças no tabuleiro\n")
     P(_linha("peças", "fotos", "casas — cor", "casas — forma", "peças — cor", "peças — forma",
-             "vitória — cor", "vitória — forma"))
-    P(_linha(*["---"] * 8))
+             "peças — combinado", "vitória — cor", "vitória — forma", "vitória — combinado"))
+    P(_linha(*["---"] * 10))
     for k in range(1, 13):
         ns = [n for n in fotos if rc[n]["n_pecas"] == k]
         if not ns:
             continue
-        c, f = {n: rc[n] for n in ns}, {n: rf[n] for n in ns}
+        c, f, b = {n: rc[n] for n in ns}, {n: rf[n] for n in ns}, {n: rk[n] for n in ns}
         vit = (lambda r: f"{sum(x['vitoria'] for x in r.values())}/{len(r)}") if k == 12 else (lambda r: "—")
-        P(_linha(k, len(ns), _resumo(c)[0], _resumo(f)[0], _resumo(c)[1], _resumo(f)[1], vit(c), vit(f)))
+        P(_linha(k, len(ns), _resumo(c)[0], _resumo(f)[0], _resumo(c)[1], _resumo(f)[1], _resumo(b)[1],
+                 vit(c), vit(f), vit(b)))
     P("\nPeças certas = a letra do gabarito ocupa exatamente as mesmas casas na previsão. "
       "Vitória só existe com 12 peças; vitórias falsas com 1 a 11 peças: "
-      f"cor {_resumo(rc)[3]}, forma {_resumo(rf)[3]}.\n")
+      f"cor {_resumo(rc)[3]}, forma {_resumo(rf)[3]}, combinado {_resumo(rk)[3]}.\n")
 
     # 4. fotos com mão
     P("## 4. Fotos com mão (devem ser descartadas)\n")
@@ -203,69 +207,65 @@ def gerar(pasta: Path, saida: Path) -> str:
       "(uma peça nova por foto) e para peças sozinhas. Por isso casas certas e peças certas não podem "
       "ser calculadas aqui. O tabuleiro está completo, então o certo é detectar vitória; também conto as "
       "peças válidas (5 casas com a forma da letra) e mostro a grade de cada modo para conferir na foto.\n")
-    P(_linha("foto", "peças válidas — cor", "peças válidas — forma", "“?” — cor", "“?” — forma",
-             "vitória — cor", "vitória — forma"))
-    P(_linha(*["---"] * 7))
+    P(_linha("foto", "peças válidas — cor", "peças válidas — forma", "peças válidas — combinado",
+             "“?” — cor", "“?” — forma", "vitória — cor", "vitória — forma", "vitória — combinado"))
+    P(_linha(*["---"] * 9))
     grades, t3 = {}, {}
     for n in cp.teste:
         res = t3.setdefault(n, {})
-        for modo in ("cor", "forma"):
+        for modo in ("cor", "forma", "combinado"):
             g = prever(cp.cel[n], modo, cp.pal_final, CFG, cp.vazio)
             grades[(n, modo)] = g
             e = validar_estado(g, CFG.pecas, CFG.espelhar)
             res[modo] = (sum(p.valida for p in e.pecas.values()), sum(x == INCERTO for l in g for x in l), e.vitoria)
-        P(_linha(f"`{n}`", f"{res['cor'][0]}/12", f"{res['forma'][0]}/12", res["cor"][1], res["forma"][1],
-                 res["cor"][2], res["forma"][2]))
+        P(_linha(f"`{n}`", f"{res['cor'][0]}/12", f"{res['forma'][0]}/12", f"{res['combinado'][0]}/12",
+                 res["cor"][1], res["forma"][1], res["cor"][2], res["forma"][2], res["combinado"][2]))
     for n in cp.teste:
         P(f"\n`{n}` — cor | forma:\n\n```")
         for a, b in zip(grades[(n, "cor")], grades[(n, "forma")]):
             P("".join(a) + "   " + "".join(b))
         P("```")
     P("")
-    P(recomendacao(rc, rf, rs, t3, mc, mf))
+    P(recomendacao(rc, rf, rk, rs, t3, mc, mf))
     texto = "\n".join(L)
     saida.parent.mkdir(parents=True, exist_ok=True)
     saida.write_text(texto, encoding="utf-8")
     return texto
 
 
-def recomendacao(rc, rf, rs, t3, mc, mf) -> str:
-    c, f, s = _resumo(rc), _resumo(rf), _resumo(rs)
-    vit = {m: sum(r[m][2] for r in t3.values()) for m in ("cor", "forma")}
-    falhas = [n for n, r in t3.items() if not r["forma"][2]]
+def recomendacao(rc, rf, rk, rs, t3, mc, mf) -> str:
+    c, f, k, s = _resumo(rc), _resumo(rf), _resumo(rk), _resumo(rs)
+    vit = {m: sum(r[m][2] for r in t3.values()) for m in ("cor", "forma", "combinado")}
+    falhas = [n for n, r in t3.items() if not r["combinado"][2]]
     descarte = {m: sum(r["incertas"] > CFG.max_incertas for r in res.values()) for m, res in (("cor", mc), ("forma", mf))}
     linhas = [
         "## 6. Recomendação\n",
-        "**Usar `identificacao = \"forma\"` como padrão depois de uma partida de teste com a câmera real.** "
-        "O padrão continua `\"cor\"`; esta branch não o muda.\n",
-        f"- Fotos com gabarito: forma acerta {f[0]} das casas e {f[1]} das peças, contra {c[0]} e {c[1]} "
-        f"do modo cor; detecta a vitória em {f[2]} tabuleiros completos (cor: {c[2]}). A diferença cresce "
-        "com o número de peças (seção 3), que é onde as cores vizinhas parecidas se encostam.",
-        f"- 3º tabuleiro, fora da calibração: vitória em {vit['forma']}/{len(t3)} fotos no modo forma e "
-        f"{vit['cor']}/{len(t3)} no modo cor.",
+        f"**Padrão: `identificacao = \"{CFG.identificacao}\"`.** O modo combinado roda o modo cor e, quando "
+        "ele tem peça inválida ou casa “?”, roda o forma e fica com o que tiver mais peças válidas (e menos “?”). Falta "
+        "confirmar com uma partida ao vivo com a câmera real.\n",
+        f"- Fotos com gabarito: casas certas cor {c[0]}, forma {f[0]}, combinado {k[0]}; peças certas "
+        f"cor {c[1]}, forma {f[1]}, combinado {k[1]}; vitória nos tabuleiros completos cor {c[2]}, "
+        f"forma {f[2]}, combinado {k[2]}. A diferença cresce com o número de peças (seção 3).",
+        f"- 3º tabuleiro, fora da calibração: vitória em {vit['combinado']}/{len(t3)} fotos no combinado, "
+        f"{vit['forma']}/{len(t3)} no forma e {vit['cor']}/{len(t3)} no cor.",
     ]
     for n in falhas:
         r = t3[n]
-        destino = {m: "descartado" if r[m][1] > CFG.max_incertas else "publicado" for m in ("cor", "forma")}
-        linhas.append(f"  - `{n}` falha no modo forma: {r['forma'][1]} casas “?”, quadro {destino['forma']}. "
-                      f"No modo cor: {r['cor'][1]} “?”, {r['cor'][0]}/12 peças válidas, quadro {destino['cor']} "
-                      f"(limite de {CFG.max_incertas} “?” por quadro).")
+        linhas.append(f"  - `{n}` falha em todos os modos: {r['forma'][1]} casas “?” no forma e "
+                      f"{r['cor'][1]} no cor (acima de {CFG.max_incertas} por quadro, o quadro é descartado).")
     linhas += [
         f"- Fotos com mão: descartadas em {descarte['forma']}/{len(mf)} (forma) e {descarte['cor']}/{len(mc)} (cor).",
-        "- Custo: alguns milissegundos por quadro (seção 2), bem abaixo dos 100 ms do loop.\n",
+        "- Custo: poucos milissegundos por quadro (seção 2), bem abaixo dos 100 ms do loop.\n",
         "**Limites desta medição:**\n",
         "- O gabarito dá nome às peças pela forma e marca ocupação por croma; isso favorece o modo forma "
         "no nome das peças. O que ele mede de forma independente é a separação de peças encostadas.",
         "- São só 3 tabuleiros completos com gabarito e 3 fotos de teste, uma mesa e uma luz.",
         "- Os limiares foram escolhidos nessas mesmas fotos; o 3º tabuleiro é o único teste de fora.",
-        f"- Sem `vazio.json` (casa vazia = “.” da paleta): {s[0]} das casas, {s[1]} das peças, vitória em "
-        f"{s[2]} (seção 2). Vale criá-lo no local definitivo (`python forma.py FOTO_DO_TABULEIRO_VAZIO`) "
-        "e medir de novo.\n",
-        "**Antes de trocar o padrão:** rodar uma partida ao vivo com `{\"identificacao\": \"forma\"}` "
-        "no `--config` do `loop_ao_vivo.py`, conferir a tela e repetir esta comparação com fotos novas.",
+        f"- Forma sem `vazio.json` (casa vazia = “.” da paleta): {s[0]} das casas, {s[1]} das peças, "
+        f"vitória em {s[2]} (seção 2). Vale criá-lo no local definitivo "
+        "(`python forma.py FOTO_DO_TABULEIRO_VAZIO`).",
     ]
     return "\n".join(linhas) + "\n"
-
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__)

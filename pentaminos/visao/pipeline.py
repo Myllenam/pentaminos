@@ -8,7 +8,7 @@ import numpy as np
 
 from config import Config
 from estabilizacao import Estabilizador, mudanca_media
-from forma import classificar_forma
+from forma import classificar_combinado, classificar_forma
 from localizacao import retificar
 from validador import ResultadoEstado, diferencas, validar_estado
 from visao import Paleta, classificar, cores_das_celulas
@@ -44,6 +44,8 @@ class Pipeline:
         cores = cores_das_celulas(topo, cfg.linhas, cfg.colunas, cfg.fracao_central)
         if cfg.identificacao == "forma":
             grade = classificar_forma(cores, self.paleta, cfg, self.cores_vazio)
+        elif cfg.identificacao == "combinado":
+            grade = classificar_combinado(cores, self.paleta, cfg, self.cores_vazio)
         else:
             grade, _ = classificar(cores, self.paleta, cfg.limiar_incerto, cfg.peso_l)
         incertas = sum(linha.count("?") for linha in grade)
