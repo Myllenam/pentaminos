@@ -64,15 +64,16 @@ Resultado (detalhes e tabelas em `calibracao/relatorio_calibracao.md`):
 ## Modos de identificação
 
 `config.py` tem `identificacao`: `"combinado"` (padrão), `"cor"` ou `"forma"`. Todos produzem a mesma
-grade 6×10 (letra, `.` ou `?`), então validador, eventos, backend e tela não mudam. O **combinado** usa o
-modo cor e, se ele tiver peça inválida ou casa `?`, roda o forma e fica com o que tiver mais peças válidas.
+grade 6×10 (letra, `.` ou `?`), então validador, eventos, backend e tela não mudam. O **combinado** roda os
+dois e decide por peça: fica com a peça válida do modo forma e, onde o forma não resolve, com a do modo cor.
 
 | | Modo `"cor"` | Modo `"forma"` (`forma.py`) |
 |---|---|---|
 | Como dá nome | Cada casa recebe a cor mais próxima da paleta. | Junta casas ocupadas vizinhas de cor parecida e dá o nome pela **forma** do grupo. |
 | Vazia × ocupada | Cor mais próxima é o `.` da paleta. | Distância até a casa vazia (`calibracao/vazio.json` ou, sem ele, o `.` da paleta), com `limiar_ocupada` ± `margem_ocupada`; no meio vira `?`. |
-| Peças de cor parecida encostadas (V–Z, I–T, U–Y) | Uma casa trocada invalida a peça. | Viram um grupo de 10, 15… casas, dividido em pentaminós por cobertura exata (Algoritmo X do `gerar_solucoes.py`); havendo mais de uma divisão, vence a de menos letras repetidas e, depois, a de cor mais perto da paleta. |
-| Peça inválida | Letra com ≠ 5 casas, desconectada ou forma errada. | Grupo que não se divide em pentaminós (ex.: 4 ou 7 casas) volta para o modo cor casa a casa, e o validador acusa como antes. Duas peças com a mesma forma recebem a mesma letra e o validador acusa as 10 casas. |
+| Peças de cor parecida encostadas (V–Z, I–T, U–Y) | Uma casa trocada invalida a peça. | Aceita primeiro as peças válidas; as sobras (inclusive `?`) viram componentes pela ocupação, sem olhar a cor, divididos em pentaminós por cobertura exata (Algoritmo X do `gerar_solucoes.py`), dando preferência às letras que faltam. |
+| Peça partida (borda, reflexo) | A casa diferente vira outra letra. | Componente com 5k−1 casas pode ganhar uma vizinha “quase ocupada” (`limiar_ocupada_fraca`, `limiar_croma_fraca`); se ainda sobrar, solta as peças vizinhas e divide de novo. A busca tem prazo (`tempo_max_forma_ms`). |
+| Peça inválida | Letra com ≠ 5 casas, desconectada ou forma errada. | O que não se divide (ex.: 4 ou 7 casas) volta para o modo cor casa a casa, e o validador acusa como antes. Duas peças com a mesma forma recebem a mesma letra e o validador acusa as 10 casas. Depois de `tempo_duvida_s`, a tela pergunta ao jogador qual é a peça. |
 
 Para usar outro modo, passe um JSON no `--config`:
 
@@ -81,8 +82,10 @@ Para usar outro modo, passe um JSON no `--config`:
 python loop_ao_vivo.py --fonte 0 --sessao ID --config cor.json
 ```
 
-Limiares do modo forma em `config.py`: `limiar_ocupada`, `margem_ocupada`, `limiar_mesma_peca` e
-`max_divisoes`. Para medir a cor de cada casa vazia na câmera real (opcional), com o tabuleiro vazio
+Parâmetros do modo forma em `config.py`: `limiar_ocupada`, `margem_ocupada`, `limiar_mesma_peca`,
+`max_divisoes`, `limiar_ocupada_fraca`, `limiar_croma_fraca` e `tempo_max_forma_ms`. Leitura: o quadro só é
+descartado com movimento ou mais de `max_incertas_mao` casas `?`, e cada casa é a maioria dos últimos
+`janela_votos` quadros. Para medir a cor de cada casa vazia na câmera real (opcional), com o tabuleiro vazio
 no enquadramento da homografia: `python forma.py foto_do_tabuleiro_vazio.jpg` (grava `calibracao/vazio.json`).
 
 A comparação entre os modos nas fotos reais está em `calibracao/comparacao_modos.md`
