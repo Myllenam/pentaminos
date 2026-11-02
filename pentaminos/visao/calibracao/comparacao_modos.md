@@ -16,10 +16,10 @@ Distância entre casas vizinhas: da mesma peça p95 8.5, p99 12.5, máx. 15.8; d
 
 | limiar_mesma_peca | casas certas | peças certas | vitórias (completos) | vitórias falsas |
 | --- | --- | --- | --- | --- |
-| 8 | 99.0% | 90.6% | 1/3 | 0 |
-| 10 | 99.1% | 92.2% | 1/3 | 0 |
-| 12 | 99.6% | 96.7% | 1/3 | 0 |
-| 14 | 99.8% | 97.8% | 2/3 | 0 |
+| 8 | 100.0% | 100.0% | 3/3 | 0 |
+| 10 | 100.0% | 100.0% | 3/3 | 0 |
+| 12 | 100.0% | 100.0% | 3/3 | 0 |
+| 14 | 100.0% | 100.0% | 3/3 | 0 |
 | 16 | 100.0% | 100.0% | 3/3 | 0 |
 | 18 | 100.0% | 100.0% | 3/3 | 0 |
 | 20  ← padrão | 100.0% | 100.0% | 3/3 | 0 |
@@ -38,7 +38,7 @@ A varredura usa as mesmas fotos da comparação; o 3º tabuleiro (seção 5) é 
 | combinado (cor; se houver peça inválida ou “?”, forma) | 100.0% | 100.0% | 3/3 | 0 |
 | forma sem `vazio.json` (casa vazia = “.” da paleta) | 100.0% | 100.0% | 3/3 | 0 |
 
-Tempo médio por foto só da etapa de rótulos (sem retificar): cor 0.1 ms, forma 1.7 ms, combinado 1.6 ms. O loop ao vivo roda a 10 quadros/s (100 ms por quadro).
+Tempo médio por foto só da etapa de rótulos (sem retificar): cor 0.1 ms, forma 1.7 ms, combinado 1.8 ms. O loop ao vivo roda a 10 quadros/s (100 ms por quadro).
 
 ## 3. Por número de peças no tabuleiro
 
@@ -61,14 +61,14 @@ Peças certas = a letra do gabarito ocupa exatamente as mesmas casas na previsã
 
 ## 4. Fotos com mão (devem ser descartadas)
 
-O pipeline descarta o quadro com mais de 3 casas “?”.
+O pipeline descarta o quadro com mais de 10 casas “?”.
 
 | foto | “?” — cor | “?” — forma | vitória — cor | vitória — forma |
 | --- | --- | --- | --- | --- |
-| `tabuleiro_vazio_mao` | 30 | 33 | False | False |
-| `tabuleiro_vazio_mao_em_cima` | 24 | 36 | False | False |
-| `tabuleiro_1_mao` | 29 | 33 | False | False |
-| `tabuleiro_2_completo_mao` | 21 | 37 | False | False |
+| `tabuleiro_vazio_mao` | 30 | 26 | False | False |
+| `tabuleiro_vazio_mao_em_cima` | 24 | 22 | False | False |
+| `tabuleiro_1_mao` | 29 | 29 | False | False |
+| `tabuleiro_2_completo_mao` | 21 | 18 | False | False |
 
 ## 5. 3º tabuleiro (fora da calibração)
 
@@ -77,7 +77,7 @@ Estas fotos **não têm gabarito**: o `calibrar_fotos.py` só monta gabarito par
 | foto | peças válidas — cor | peças válidas — forma | peças válidas — combinado | “?” — cor | “?” — forma | vitória — cor | vitória — forma | vitória — combinado |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `WhatsApp Image 2026-10-29 at 13.51.31 (1)` | 4/12 | 12/12 | 12/12 | 17 | 0 | False | True | True |
-| `WhatsApp Image 2026-10-29 at 13.51.32 (1)` | 3/12 | 3/12 | 3/12 | 4 | 25 | False | False | False |
+| `WhatsApp Image 2026-10-29 at 13.51.32 (1)` | 3/12 | 3/12 | 3/12 | 4 | 4 | False | False | False |
 | `WhatsApp Image 2026-10-29 at 13.51.33 (1)` | 10/12 | 12/12 | 12/12 | 0 | 0 | False | True | True |
 
 `WhatsApp Image 2026-10-29 at 13.51.31 (1)` — cor | forma:
@@ -94,11 +94,11 @@ IN????F???   INYYYYFUUU
 `WhatsApp Image 2026-10-29 at 13.51.32 (1)` — cor | forma:
 
 ```
-ZZZZZZZVVV   ?????Z?VVV
-ZZ??Z?VVZV   ??????VVZV
-ZTZZZZZZPP   ?T?????ZPP
-ZZNZZZZFPP   ??N??Z?FPP
-INWWYZFUPU   INWWY?FUPU
+ZZZZZZZVVV   ZZZZZZZVVV
+ZZ??Z?VVZV   ZZ??Z?VVZV
+ZTZZZZZZPP   ZTZZZZZZPP
+ZZNZZZZFPP   ZZNZZZZFPP
+INWWYZFUPU   INWWYZFUPU
 INYYYY?UUU   INYYYY?UUU
 ```
 
@@ -119,7 +119,7 @@ INYYYYFUUU   INYYYYFUUU
 
 - Fotos com gabarito: casas certas cor 96.0%, forma 100.0%, combinado 100.0%; peças certas cor 73.2%, forma 100.0%, combinado 100.0%; vitória nos tabuleiros completos cor 0/3, forma 3/3, combinado 3/3. A diferença cresce com o número de peças (seção 3).
 - 3º tabuleiro, fora da calibração: vitória em 2/3 fotos no combinado, 2/3 no forma e 0/3 no cor.
-  - `WhatsApp Image 2026-10-29 at 13.51.32 (1)` falha em todos os modos: 25 casas “?” no forma e 4 no cor (acima de 3 por quadro, o quadro é descartado).
+  - `WhatsApp Image 2026-10-29 at 13.51.32 (1)` falha em todos os modos: 4 casas “?” no forma e 4 no cor (acima de 10 por quadro, o quadro é descartado).
 - Fotos com mão: descartadas em 4/4 (forma) e 4/4 (cor).
 - Custo: poucos milissegundos por quadro (seção 2), bem abaixo dos 100 ms do loop.
 
