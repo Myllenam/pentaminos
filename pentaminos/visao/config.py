@@ -24,7 +24,7 @@ class Config:
     # --- modo "forma" (ver comparacao_modos.md) ---
     limiar_ocupada: float = 26.0     # distância até a casa vazia que separa vazia de ocupada
     margem_ocupada: float = 4.0      # faixa em volta do limiar_ocupada que vira "?"
-    limiar_mesma_peca: float = 16.0  # distância máx. entre vizinhas para ficarem no mesmo grupo
+    limiar_mesma_peca: float = 20.0  # distância máx. entre vizinhas para ficarem no mesmo grupo
     max_divisoes: int = 200          # divisões de um grupo grande examinadas (Algoritmo X)
     # --- estabilização / oclusão ---
     quadros_estaveis: int = 3        # quadros consecutivos iguais para publicar
