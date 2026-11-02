@@ -43,8 +43,8 @@ def test_registra_todas_as_mensagens_reais_do_demo(db, mensagens_demo):
     assert colocadas == 13  # 12 peças + a recolocação da I
     assert len(sessao.jogadas) == len(eventos) == 14
     assert [j.sequencia for j in sessao.jogadas] == list(range(1, 15))
-    # numero_jogadas conta só piece_placed.
-    assert sessao.numero_jogadas == colocadas
+    # Só conta peça válida em posição nova: a I recolocada no mesmo lugar não conta.
+    assert sessao.numero_jogadas == 12
 
 
 def test_primeira_jogada_real_guarda_os_campos_da_mensagem(db, mensagens_demo):
@@ -57,6 +57,27 @@ def test_primeira_jogada_real_guarda_os_campos_da_mensagem(db, mensagens_demo):
     assert jogada.casas == [[3, 2], [4, 2], [4, 3], [5, 1], [5, 2]]
     assert int(jogada.ts.timestamp()) == primeira["ts"]
     assert jogada.sequencia == 1
+
+
+F = [[3, 2], [4, 2], [4, 3], [5, 1], [5, 2]]
+
+
+def colocar(db, sessao, casas, valida=True, tipo="piece_placed"):
+    services.registrar_evento(db, {"type": tipo, "session": sessao.id, "ts": 1793141068,
+                                   "piece": "F", "cells": casas, "valid": valida})
+    db.refresh(sessao)
+    return sessao.numero_jogadas
+
+
+def test_jogada_so_conta_peca_valida_em_posicao_nova(db):
+    sessao = nova_sessao(db)
+    assert colocar(db, sessao, F, valida=False) == 0          # inválida não conta
+    assert colocar(db, sessao, F) == 1                        # primeira posição válida
+    assert colocar(db, sessao, F, tipo="piece_removed") == 1
+    assert colocar(db, sessao, F) == 1                        # pisca e volta: não conta
+    movida = [[r, c + 4] for r, c in F]
+    assert colocar(db, sessao, movida) == 2                   # mudou de lugar: conta
+    assert len(sessao.jogadas) == 5                           # todas ficam registradas
 
 
 def test_remocao_real_nao_incrementa_numero_jogadas(db, mensagens_demo):

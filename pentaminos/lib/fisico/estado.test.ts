@@ -89,8 +89,8 @@ describe("reducerFisico com demo_sintetico.jsonl", () => {
       "F", "L", "I", "N", "P", "T", "U", "V", "W", "X", "Y", "Z",
     ]);
     expect(pecasValidas(estado)).toHaveLength(12);
-    // 13 piece_placed no demo.
-    expect(estado.numeroJogadas).toBe(13);
+    // 13 piece_placed no demo; a I volta ao mesmo lugar e não conta.
+    expect(estado.numeroJogadas).toBe(12);
     expect(estado.eventos[0].texto).toBe("Z colocada");
     expect(estado.eventos.map((e) => e.texto)).toContain("I removida");
   });
@@ -102,7 +102,7 @@ describe("reducerFisico com demo_sintetico.jsonl", () => {
 
     expect(antes.vitoria).toBeNull();
     expect(tabuleiroCompleto(antes)).toBe(false);
-    expect(depois.vitoria).toEqual({ origem: "local", numeroJogadas: 13 });
+    expect(depois.vitoria).toEqual({ origem: "local", numeroJogadas: 12 });
   });
 
   it("com WebSocket só vence ao receber game_won", () => {
@@ -428,5 +428,30 @@ describe("dúvida da visão e resposta do jogador", () => {
       { type: "assign_piece", cells: V, piece: "V", session: "abc" },
       { type: "pause", session: "abc" },
     ]);
+  });
+});
+
+describe("contagem de jogadas", () => {
+  const F: [number, number][] = [[0, 1], [0, 2], [1, 0], [1, 1], [2, 1]];
+  const peca = (tipo: "piece_placed" | "piece_removed", cells: [number, number][], valid = true) =>
+    ({ type: tipo, session: "s", ts: 1, piece: "F", cells, valid }) as MensagemFisico;
+
+  it("só conta peça válida em posição nova", () => {
+    const movida = F.map(([r, c]) => [r, c + 4] as [number, number]);
+    const passos = [
+      peca("piece_placed", F, false),   // inválida: não conta
+      peca("piece_placed", F),          // 1
+      peca("piece_removed", F),
+      peca("piece_placed", F),          // pisca e volta: não conta
+      peca("piece_placed", movida),     // 2
+    ];
+    const contagens = passos.reduce<{ estado: EstadoFisico; n: number[] }>(
+      ({ estado, n }, mensagem) => {
+        const proximo = reducerFisico(estado, { tipo: "mensagem", mensagem });
+        return { estado: proximo, n: [...n, proximo.numeroJogadas] };
+      },
+      { estado: estadoInicial(false), n: [] },
+    ).n;
+    expect(contagens).toEqual([0, 1, 1, 1, 2]);
   });
 });

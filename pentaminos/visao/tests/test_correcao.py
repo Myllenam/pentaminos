@@ -45,7 +45,7 @@ class TestDuvidaECorrecao(unittest.TestCase):
         rodar(pipe, GRADE, rng, 0.0, n=8)
         self.assertFalse(pipe.estado_atual.pecas["V"].valida)
         self.assertIsNone(pipe.atribuir(CASAS_Z, "Z"))
-        msgs = rodar(pipe, GRADE, rng, 5.0)
+        msgs = rodar(pipe, GRADE, rng, 5.0, n=7)
         self.assertTrue(pipe.estado_atual.pecas["Z"].valida)
         self.assertTrue(pipe.estado_atual.pecas["V"].valida)
         ultimo = [m for m in msgs if m["type"] == "board_state"][-1]

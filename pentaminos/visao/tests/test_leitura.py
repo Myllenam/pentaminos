@@ -3,10 +3,12 @@ import unittest
 import numpy as np
 
 from config import Config
+from estabilizacao import Estabilizador, Votador
 from gerar_solucoes import solucoes
 from localizacao import calcular_homografia
 from monitor import Instabilidade, Resumo
 from pipeline import Pipeline
+from validador import diferencas, validar_estado
 from sintetico import CANTOS_PADRAO, CORES_APP, FUNDO_MDF, com_mao, com_ruido, projetar, renderizar
 from visao import Paleta
 
@@ -82,6 +84,67 @@ class TestMonitor(unittest.TestCase):
         self.assertEqual([m for m in mudancas if m], [{"status": "leitura_instavel", "detail": "movimento"}])
         self.assertEqual(inst.atualizar(False, "", 3.6), {"status": "tabuleiro_detectado"})
         self.assertIsNone(inst.atualizar(False, "", 3.7))
+
+
+
+def simular(grades, janela, estaveis=3):
+    """Votação + estabilização + validação, sem imagem: devolve as peças colocadas."""
+    votos, estab, anterior, colocadas = Votador(janela), Estabilizador(estaveis), None, []
+    for g in grades:
+        novo = estab.atualizar(votos.votar(g, estab.publicado))
+        if novo is not None:
+            estado = validar_estado(novo)
+            colocadas += [e.peca for e in diferencas(anterior, estado) if e.tipo == "piece_placed"]
+            anterior = estado
+    return colocadas
+
+
+def com_piscadas(sol, quadros=300, seed=0):
+    """Tabuleiro cheio; de vez em quando uma casa vira outra letra por 1 a 3 quadros."""
+    rng = np.random.default_rng(seed)
+    grades, fim, casa, letra = [], -1, None, None
+    for i in range(quadros):
+        if i > fim and rng.random() < 0.1:
+            casa = (int(rng.integers(6)), int(rng.integers(10)))
+            letra = str(rng.choice([l for l in "FILNPTUVWXYZ" if l != sol[casa[0]][casa[1]]]))
+            fim = i + int(rng.integers(1, 4)) - 1
+        g = [l[:] for l in sol]
+        if i <= fim:
+            g[casa[0]][casa[1]] = letra
+        grades.append(g)
+    return grades
+
+
+class TestContagemDeJogadas(unittest.TestCase):
+    def test_votacao_ignora_piscadas_de_ate_3_quadros(self):
+        grades = com_piscadas(SOL)
+        antigo = simular(grades, janela=1)
+        novo = simular(grades, janela=Config().janela_votos)
+        self.assertGreater(len(antigo), 24)        # cada piscada vira jogada no jeito antigo
+        self.assertEqual(sorted(novo), sorted("FILNPTUVWXYZ"))
+
+    def test_ruido_de_um_quadro_nao_atrasa_a_publicacao(self):
+        rng = np.random.default_rng(1)
+        grades = []
+        for _ in range(300):   # metade dos quadros com uma casa "?"
+            g = [l[:] for l in SOL]
+            if rng.random() < 0.5:
+                g[int(rng.integers(6))][int(rng.integers(10))] = "?"
+            grades.append(g)
+
+        def primeiro(janela, estaveis):
+            votos, estab = Votador(janela), Estabilizador(estaveis)
+            return next(i for i, g in enumerate(grades) if estab.atualizar(votos.votar(g, estab.publicado)))
+
+        self.assertLess(primeiro(Config().janela_votos, Config().quadros_estaveis), 5)
+        self.assertGreater(primeiro(1, 5), 50)   # só subir quadros_estaveis travaria a tela
+
+    def test_peca_nova_aparece_em_ate_6_quadros(self):
+        sem_i = [[x if x != "I" else "." for x in l] for l in SOL]
+        grades = [sem_i] * 20 + [SOL] * 10
+        votos, estab = Votador(Config().janela_votos), Estabilizador(Config().quadros_estaveis)
+        quando = [i for i, g in enumerate(grades) if estab.atualizar(votos.votar(g, estab.publicado))]
+        self.assertEqual(quando[-1] - 20, 5)       # 6º quadro depois de pôr a peça
 
 
 if __name__ == "__main__":

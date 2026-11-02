@@ -161,6 +161,7 @@ def registrar_evento(db: Session, mensagem: Mapping[str, Any]) -> Jogada:
     sessao = buscar_sessao(db, sessao_id)
     _exigir_em_andamento(sessao)
 
+    conta = tipo == "piece_placed" and valida and _mudou_de_lugar(db, sessao.id, peca, casas)
     ultima = db.scalar(
         select(func.max(Jogada.sequencia)).where(Jogada.sessao_id == sessao.id)
     )
@@ -174,7 +175,7 @@ def registrar_evento(db: Session, mensagem: Mapping[str, Any]) -> Jogada:
         ts=ts,
     )
     db.add(jogada)
-    if tipo == "piece_placed":
+    if conta:
         # Incremento no banco, sem ler e reescrever o valor.
         db.execute(
             update(Sessao)
@@ -184,6 +185,18 @@ def registrar_evento(db: Session, mensagem: Mapping[str, Any]) -> Jogada:
     db.commit()
     db.refresh(sessao)
     return jogada
+
+
+def _mudou_de_lugar(db: Session, sessao_id: str, peca: str, casas: list[list[int]]) -> bool:
+    """Peça válida em posição diferente da última posição válida dela."""
+    anterior = db.scalar(
+        select(Jogada.casas)
+        .where(Jogada.sessao_id == sessao_id, Jogada.peca == peca,
+               Jogada.tipo == "piece_placed", Jogada.valida.is_(True))
+        .order_by(Jogada.sequencia.desc())
+        .limit(1)
+    )
+    return anterior is None or sorted(map(tuple, anterior)) != sorted(map(tuple, casas))
 
 
 def registrar_evento_da_sessao(

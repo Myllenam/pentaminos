@@ -36,7 +36,8 @@ export interface EstadoFisico {
   // Ordem de colocação.
   ordemColocacao: PentominoId[];
   eventos: EventoFisico[]; // mais recente primeiro
-  numeroJogadas: number; // como no backend: soma 1 a cada piece_placed
+  numeroJogadas: number; // como no backend: peça válida em posição nova
+  ultimasPosicoes: Partial<Record<PentominoId, string>>; // última posição válida
   camera: StatusCamera | null; // null = nunca informado
   duvidas: Duvida[]; // peças que a visão pergunta ao jogador
   cameraDetalhe: string | null; // motivo da leitura instável
@@ -65,6 +66,7 @@ export function estadoInicial(
     ordemColocacao: [],
     eventos: [],
     numeroJogadas: 0,
+    ultimasPosicoes: {},
     camera: null,
     duvidas: [],
     cameraDetalhe: null,
@@ -72,6 +74,10 @@ export function estadoInicial(
     vitoria: null,
     detectarVitoriaLocal,
   };
+}
+
+function chavePosicao(casas: Cell[]): string {
+  return casas.map(([r, c]) => `${r},${c}`).sort().join(";");
 }
 
 function gradeEmTexto(grid: GradeVisao): string[] {
@@ -128,6 +134,8 @@ function aplicarMensagem(
       const motivo = valid
         ? undefined
         : motivoPecaInvalida(piece, cells);
+      const posicao = chavePosicao(cells);
+      const conta = valid && estado.ultimasPosicoes[piece] !== posicao;
 
       return {
         ...estado,
@@ -139,7 +147,10 @@ function aplicarMensagem(
           ...estado.ordemColocacao.filter((p) => p !== piece),
           piece,
         ],
-        numeroJogadas: estado.numeroJogadas + 1,
+        numeroJogadas: estado.numeroJogadas + (conta ? 1 : 0),
+        ultimasPosicoes: valid
+          ? { ...estado.ultimasPosicoes, [piece]: posicao }
+          : estado.ultimasPosicoes,
         eventos: novoEvento(estado, {
           ts: mensagem.ts,
           peca: piece,

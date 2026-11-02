@@ -116,7 +116,7 @@ def test_detalhe_traz_jogadas_ordenadas(client, db, mensagens_demo):
 
     assert resposta.status_code == 200
     corpo = resposta.json()
-    assert corpo["numero_jogadas"] == 13
+    assert corpo["numero_jogadas"] == 12   # a I volta para o mesmo lugar: não conta
     assert [j["sequencia"] for j in corpo["jogadas"]] == list(range(1, 15))
     primeira = corpo["jogadas"][0]
     assert (primeira["tipo"], primeira["peca"], primeira["valida"]) == ("piece_placed", "F", True)
@@ -348,7 +348,7 @@ def test_eventos_mantem_a_ordem_de_colocacao(client, mensagens_demo):
 
     detalhe = client.get(f"/sessions/{sessao['id']}").json()
     assert [j["sequencia"] for j in detalhe["jogadas"]] == list(range(1, len(eventos) + 1))
-    assert detalhe["numero_jogadas"] == sum(m["type"] == "piece_placed" for m in eventos)
+    assert detalhe["numero_jogadas"] == 12   # 13 colocações, uma repete a posição da I
 
 
 @pytest.mark.parametrize(

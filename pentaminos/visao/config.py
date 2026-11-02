@@ -32,6 +32,7 @@ class Config:
     tempo_duvida_s: float = 3.0      # peça inválida há mais disto vira pergunta na tela
     # --- estabilização / oclusão ---
     quadros_estaveis: int = 3        # quadros consecutivos iguais para publicar
+    janela_votos: int = 7            # cada casa = maioria nos últimos N quadros aceitos
     max_incertas: int = 3            # "?" tolerados no relatório de calibração
     max_incertas_mao: int = 10       # acima disto o quadro é mão em cima: descartado
     limiar_mudanca: float = 8.0      # (AJUSTAR) diferença média entre quadros (0-255)

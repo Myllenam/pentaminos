@@ -8,7 +8,7 @@ import numpy as np
 
 from config import Config
 from correcao import Correcoes, Duvidas
-from estabilizacao import Estabilizador, mudanca_media
+from estabilizacao import Estabilizador, Votador, mudanca_media
 from forma import classificar_combinado, classificar_forma
 from localizacao import retificar
 from validador import ResultadoEstado, diferencas, validar_estado
@@ -30,6 +30,7 @@ class Pipeline:
         self.cfg, self.H, self.paleta, self.sessao = cfg, H, paleta, sessao
         self.cores_vazio = cores_vazio   # só usado no modo "forma"
         self._estab = Estabilizador(cfg.quadros_estaveis)
+        self._votos = Votador(cfg.janela_votos)
         self._anterior: np.ndarray | None = None
         self._estado: ResultadoEstado | None = None
         self.correcoes = Correcoes(cfg.quadros_estaveis)
@@ -71,7 +72,8 @@ class Pipeline:
 
         grade, descartadas = self.correcoes.aplicar(grade)
         avisos = [f"correção de {l} descartada: casas vazias" for l in descartadas]
-        novo = self._estab.atualizar(self._lembrar(grade))
+        votada = self._votos.votar(self._lembrar(grade), self._estab.publicado)
+        novo = self._estab.atualizar(votada)
         ts = int(time.time()) if ts is None else ts
         agora = time.monotonic() if agora is None else agora
         if novo is None:

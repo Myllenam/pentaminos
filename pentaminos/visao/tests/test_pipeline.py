@@ -42,7 +42,7 @@ class TestPipeline(unittest.TestCase):
                 r = pipe.processar(quadro(estado, rng, mao=pos))
                 descartados += r.descartado
                 mensagens += r.mensagens
-            for _ in range(4):
+            for _ in range(7):
                 r = pipe.processar(quadro(estado, rng))
                 mensagens += r.mensagens
         colocadas = [m for m in mensagens if m["type"] == "piece_placed"]
@@ -67,7 +67,7 @@ class TestPipeline(unittest.TestCase):
         pipe = Pipeline(CFG, H, PALETA)
         msgs = []
         for estado in (estados[2], estados[1]):          
-            for _ in range(4):
+            for _ in range(7):
                 msgs += pipe.processar(quadro(estado, rng)).mensagens
         tipos = [m["type"] for m in msgs if m["type"] != "board_state"]
         self.assertEqual(tipos, ["piece_placed", "piece_placed", "piece_removed"])
