@@ -141,8 +141,7 @@ function TelaFisico({
   const preenchidas = casasPreenchidas(estado.grade);
   const tempoFinal = estado.vitoria?.tempoTotalS ?? elapsedSeconds;
 
-  const cameraPerdida =
-    estado.camera === "desconectada" || estado.tabuleiro === "perdido";
+  const cameraPerdida = estado.camera === "perdida";
 
   const abandonarSePreciso = async () => {
     if (sessaoLocal || venceu) return;
@@ -208,7 +207,7 @@ function TelaFisico({
             conexao={conexao}
             reconectando={reconectando}
           />
-          <IndicadorCamera camera={estado.camera} tabuleiro={estado.tabuleiro} />
+          <IndicadorCamera camera={estado.camera} />
         </div>
 
         <div className="flex w-full gap-2 sm:w-auto [&>button]:w-auto [&>button]:flex-1 sm:[&>button]:flex-none">
@@ -268,9 +267,7 @@ function TelaFisico({
                 <div className="flex max-w-xs flex-col items-center gap-2 rounded-lg bg-white px-5 py-4 text-center shadow-lg ring-1 ring-amber-200">
                   <CameraOff className="size-6 text-amber-600" />
                   <p className="font-semibold text-foreground">
-                    {estado.camera === "desconectada"
-                      ? "Câmera desconectada"
-                      : "Tabuleiro perdido"}
+                    Câmera perdida
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Mostrando a última leitura. Verifique a câmera e se o

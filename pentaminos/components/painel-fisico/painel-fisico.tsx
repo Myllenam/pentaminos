@@ -4,6 +4,7 @@ import {
   CameraOff,
   Loader2,
   MinusCircle,
+  PauseCircle,
   PlusCircle,
   Wifi,
   WifiOff,
@@ -92,20 +93,19 @@ export function IndicadorConexao({
 
 export function IndicadorCamera({
   camera,
-  tabuleiro,
-}: Pick<EstadoFisico, "camera" | "tabuleiro">) {
-  if (camera === "desconectada") {
+}: Pick<EstadoFisico, "camera">) {
+  if (camera === "perdida") {
     return (
       <Indicador tom="erro" icone={<CameraOff />}>
-        Câmera desconectada
+        Câmera perdida
       </Indicador>
     );
   }
 
-  if (tabuleiro === "perdido") {
+  if (camera === "tabuleiro_detectado") {
     return (
-      <Indicador tom="alerta" icone={<AlertTriangle />}>
-        Tabuleiro perdido
+      <Indicador tom="ok" icone={<Camera />}>
+        Tabuleiro detectado
       </Indicador>
     );
   }
@@ -114,6 +114,14 @@ export function IndicadorCamera({
     return (
       <Indicador tom="ok" icone={<Camera />}>
         Câmera conectada
+      </Indicador>
+    );
+  }
+
+  if (camera === "sintetica") {
+    return (
+      <Indicador tom="neutro" icone={<Camera />}>
+        Câmera sintética
       </Indicador>
     );
   }
@@ -171,6 +179,8 @@ const ICONE_EVENTO: Record<EventoFisico["tipo"], ReactNode> = {
   colocada: <PlusCircle className="size-4 text-green-600" />,
   removida: <MinusCircle className="size-4 text-zinc-500" />,
   invalida: <AlertTriangle className="size-4 text-red-600" />,
+  erro: <AlertTriangle className="size-4 text-red-600" />,
+  pausa: <PauseCircle className="size-4 text-amber-600" />,
 };
 
 export function ListaEventos({
@@ -197,13 +207,14 @@ export function ListaEventos({
               key={evento.id}
               className={cn(
                 "flex items-center gap-2 text-sm",
-                evento.tipo === "invalida" && "font-medium text-red-700",
+                (evento.tipo === "invalida" || evento.tipo === "erro") &&
+                  "font-medium text-red-700",
               )}
             >
               {ICONE_EVENTO[evento.tipo]}
               <span className="flex-1">{evento.texto}</span>
               <span className="font-cousine text-xs text-muted-foreground">
-                {formatarHora(evento.ts)}
+                {evento.ts === undefined ? "" : formatarHora(evento.ts)}
               </span>
             </li>
           ))}

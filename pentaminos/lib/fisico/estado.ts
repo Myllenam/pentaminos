@@ -3,7 +3,9 @@ import { Cell, PentominoId } from "@/lib/types/pentomino";
 import {
   COLUNAS_FISICO,
   LINHAS_FISICO,
+  GradeVisao,
   MensagemFisico,
+  StatusCamera,
   TOTAL_PECAS_FISICO,
 } from "@/lib/types/fisico";
 
@@ -15,9 +17,9 @@ export interface PecaFisica {
 
 export interface EventoFisico {
   id: number;
-  ts: number;
-  peca: PentominoId;
-  tipo: "colocada" | "removida" | "invalida";
+  ts?: number; // o error do ws.py vem sem ts
+  peca?: PentominoId;
+  tipo: "colocada" | "removida" | "invalida" | "erro" | "pausa";
   texto: string;
 }
 
@@ -34,8 +36,8 @@ export interface EstadoFisico {
   ordemColocacao: PentominoId[];
   eventos: EventoFisico[]; // mais recente primeiro
   numeroJogadas: number; // como no backend: soma 1 a cada piece_placed
-  camera: "conectada" | "desconectada" | null; // null = nunca informado
-  tabuleiro: "detectado" | "perdido" | null;
+  camera: StatusCamera | null; // null = nunca informado
+  erro: string | null; // último error/camera_error
   vitoria: VitoriaFisica | null;
   // Modo simulado: sem game_won.
   detectarVitoriaLocal: boolean;
@@ -61,10 +63,14 @@ export function estadoInicial(
     eventos: [],
     numeroJogadas: 0,
     camera: null,
-    tabuleiro: null,
+    erro: null,
     vitoria: null,
     detectarVitoriaLocal,
   };
+}
+
+function gradeEmTexto(grid: GradeVisao): string[] {
+  return grid.map((linha) => linha.join(""));
 }
 
 export function casasPreenchidas(grade: string[]): number {
@@ -106,7 +112,7 @@ function aplicarMensagem(
 ): EstadoFisico {
   switch (mensagem.type) {
     case "board_state":
-      return { ...estado, grade: mensagem.grid };
+      return { ...estado, grade: gradeEmTexto(mensagem.grid) };
 
     case "piece_placed": {
       const { piece, cells, valid } = mensagem;
@@ -157,15 +163,42 @@ function aplicarMensagem(
     }
 
     case "camera_status":
+      return { ...estado, camera: mensagem.status };
+
+    case "error":
+    case "camera_error": {
+      const texto =
+        mensagem.type === "error"
+          ? mensagem.detail
+          : `Câmera: ${mensagem.detail ?? "erro sem detalhe"}`;
+
       return {
         ...estado,
-        camera: mensagem.camera,
-        tabuleiro: mensagem.tabuleiro,
+        erro: texto,
+        eventos: novoEvento(estado, {
+          ts: mensagem.type === "error" ? undefined : mensagem.ts,
+          tipo: "erro",
+          texto,
+        }),
+      };
+    }
+
+    case "paused":
+    case "resumed":
+      return {
+        ...estado,
+        eventos: novoEvento(estado, {
+          ts: mensagem.ts,
+          tipo: "pausa",
+          texto:
+            mensagem.type === "paused" ? "Visão pausada" : "Visão retomada",
+        }),
       };
 
     case "game_won":
       return {
         ...estado,
+        grade: mensagem.grid ? gradeEmTexto(mensagem.grid) : estado.grade,
         vitoria: {
           origem: "servidor",
           tempoTotalS: mensagem.tempo_total_s,

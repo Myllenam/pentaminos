@@ -6,9 +6,17 @@ import {
 } from "@/lib/types/fisico";
 
 const LETRAS = "FILNPTUVWXYZ";
-const CARACTERES_GRADE = new RegExp(
-  `^[.?${LETRAS}]{${COLUNAS_FISICO}}$`,
-);
+const CASAS_GRADE = `.?${LETRAS}`;
+
+const STATUS_CAMERA = [
+  "sintetica",
+  "conectada",
+  "perdida",
+  "tabuleiro_detectado",
+];
+
+// Comandos de outro navegador que o ws.py repassa; não mudam a tela.
+const COMANDOS = new Set(["pause", "resume", "restart", "stop"]);
 
 type Registro = Record<string, unknown>;
 
@@ -41,19 +49,31 @@ function ehCasa(valor: unknown): valor is [number, number] {
   );
 }
 
-function ehGrade(valor: unknown): valor is string[] {
+// Lista de 6 listas de 10 casas, como em visao/pipeline.py.
+function ehGrade(valor: unknown): boolean {
   return (
     Array.isArray(valor) &&
     valor.length === LINHAS_FISICO &&
     valor.every(
       (linha) =>
-        typeof linha === "string" &&
-        CARACTERES_GRADE.test(linha),
+        Array.isArray(linha) &&
+        linha.length === COLUNAS_FISICO &&
+        linha.every(
+          (casa) =>
+            typeof casa === "string" &&
+            casa.length === 1 &&
+            CASAS_GRADE.includes(casa),
+        ),
     )
   );
 }
 
 function motivoInvalida(dado: Registro): string | null {
+  // O error do ws.py não traz session nem ts.
+  if (dado.type === "error") {
+    return typeof dado.detail === "string" ? null : "detail ausente";
+  }
+
   if (typeof dado.session !== "string") {
     return "session ausente";
   }
@@ -80,27 +100,40 @@ function motivoInvalida(dado: Registro): string | null {
       ) {
         return "cells inválidas";
       }
+      if (
+        dado.sequence !== undefined &&
+        !Number.isInteger(dado.sequence)
+      ) {
+        return "sequence deve ser inteiro";
+      }
       return typeof dado.valid === "boolean"
         ? null
         : "valid deve ser booleano";
 
     case "camera_status":
-      if (
-        dado.camera !== "conectada" &&
-        dado.camera !== "desconectada"
-      ) {
-        return "camera inválida";
-      }
-      return dado.tabuleiro === "detectado" ||
-        dado.tabuleiro === "perdido"
+      return STATUS_CAMERA.includes(dado.status as string)
         ? null
-        : "tabuleiro inválido";
+        : "status da câmera inválido";
 
     case "game_won":
-      return typeof dado.tempo_total_s === "number" &&
-        typeof dado.numero_jogadas === "number"
+      if (
+        typeof dado.tempo_total_s !== "number" ||
+        typeof dado.numero_jogadas !== "number"
+      ) {
+        return "tempo_total_s/numero_jogadas ausentes";
+      }
+      return dado.grid == null || ehGrade(dado.grid)
         ? null
-        : "tempo_total_s/numero_jogadas ausentes";
+        : "grid deve ter 6 linhas de 10 casas";
+
+    case "camera_error":
+      return dado.detail === undefined || typeof dado.detail === "string"
+        ? null
+        : "detail deve ser texto";
+
+    case "paused":
+    case "resumed":
+      return null;
 
     default:
       return `tipo desconhecido ${JSON.stringify(dado.type)}`;
@@ -132,6 +165,8 @@ export function validarMensagem(
     );
     return null;
   }
+
+  if (COMANDOS.has(dado.type as string)) return null;
 
   const motivo = motivoInvalida(dado);
 

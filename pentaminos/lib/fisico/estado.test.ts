@@ -20,11 +20,19 @@ const JSONL = resolve(
   "backend/tests/fixtures/demo_sintetico.jsonl",
 );
 
+// O .jsonl guarda a grade como lista de strings; o contrato usa lista de
+// listas. Mesma conversão do backend/tests/conftest.py.
 function lerDemo(): unknown[] {
   return readFileSync(JSONL, "utf8")
     .split(/\r?\n/)
     .filter(Boolean)
-    .map((linha) => JSON.parse(linha));
+    .map((linha) => {
+      const mensagem = JSON.parse(linha);
+      if (mensagem.type === "board_state") {
+        mensagem.grid = mensagem.grid.map((l: string) => [...l]);
+      }
+      return mensagem;
+    });
 }
 
 function aplicar(
@@ -150,21 +158,126 @@ describe("peças inválidas e câmera", () => {
         type: "camera_status",
         session: "demo",
         ts: 2,
-        camera: "conectada",
-        tabuleiro: "perdido",
+        status: "perdida",
       },
     });
 
-    expect(estado.tabuleiro).toBe("perdido");
+    expect(estado.camera).toBe("perdida");
     expect(estado.grade[0]).toBe("IIIIIYYYYZ");
   });
+});
+
+// Mensagens do contrato (backend/README.md, "Contrato do WebSocket").
+describe("contrato do WebSocket", () => {
+  const gradeVisao = [
+    ["I", "I", "I", "I", "I", ".", ".", ".", ".", "."],
+    ...Array.from({ length: 5 }, () => Array(10).fill(".")),
+  ];
+
+  function receber(bruta: unknown, estado = estadoInicial(false)) {
+    const mensagem = validarMensagem(bruta);
+    if (!mensagem) throw new Error(`recusada: ${JSON.stringify(bruta)}`);
+    return reducerFisico(estado, { tipo: "mensagem", mensagem });
+  }
+
+  it("board_state com grade em lista de listas", () => {
+    const estado = receber(
+      JSON.stringify({ type: "board_state", session: "s", ts: 5, grid: gradeVisao }),
+    );
+
+    expect(estado.grade).toEqual(["IIIII.....", ...Array(5).fill("..........")]);
+  });
+
+  it.each(["sintetica", "conectada", "perdida", "tabuleiro_detectado"])(
+    "camera_status %s",
+    (status) => {
+      expect(receber({ type: "camera_status", session: "s", ts: 1, status }).camera)
+        .toBe(status);
+    },
+  );
+
+  it("game_won com a grade final", () => {
+    const estado = receber({
+      type: "game_won",
+      session: "s",
+      ts: 9,
+      tempo_total_s: 42,
+      numero_jogadas: 12,
+      grid: gradeVisao,
+    });
+
+    expect(estado.vitoria).toEqual({ origem: "servidor", tempoTotalS: 42, numeroJogadas: 12 });
+    expect(estado.grade[0]).toBe("IIIII.....");
+  });
+
+  it("game_won sem grid mantém a grade", () => {
+    const antes = receber({ type: "board_state", session: "s", ts: 5, grid: gradeVisao });
+    const depois = receber(
+      { type: "game_won", session: "s", ts: 9, tempo_total_s: 1, numero_jogadas: 1, grid: null },
+      antes,
+    );
+
+    expect(depois.grade).toEqual(antes.grade);
+  });
+
+  it("piece_placed com sequence do ws.py", () => {
+    expect(
+      validarMensagem({
+        type: "piece_placed",
+        session: "s",
+        ts: 1,
+        piece: "I",
+        cells: [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]],
+        valid: true,
+        sequence: 1,
+      }),
+    ).toMatchObject({ piece: "I", sequence: 1 });
+  });
+
+  it("error do ws.py vai para o aviso e para a lista de eventos", () => {
+    const estado = receber({ type: "error", detail: "Sessão encerrada." });
+
+    expect(estado.erro).toBe("Sessão encerrada.");
+    expect(estado.eventos[0]).toMatchObject({ tipo: "erro", texto: "Sessão encerrada." });
+    expect(estado.eventos[0].ts).toBeUndefined();
+  });
+
+  it("camera_error vira erro", () => {
+    const estado = receber({ type: "camera_error", session: "s", ts: 3, detail: "sem imagem" });
+
+    expect(estado.erro).toBe("Câmera: sem imagem");
+  });
+
+  it("paused e resumed entram na lista de eventos", () => {
+    const pausado = receber({ type: "paused", session: "s", ts: 1 });
+    const retomado = receber({ type: "resumed", session: "s", ts: 2 }, pausado);
+
+    expect(retomado.eventos.map((e) => e.texto)).toEqual(["Visão retomada", "Visão pausada"]);
+  });
+
+  it.each(["pause", "resume", "restart", "stop"])(
+    "ignora o comando %s repassado sem avisar",
+    (type) => {
+      const aviso = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      expect(validarMensagem({ type, session: "s" })).toBeNull();
+      expect(aviso).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("validarMensagem", () => {
   it.each([
     ["JSON quebrado", "{nao é json"],
     ["tipo desconhecido", { type: "ola", session: "s", ts: 1 }],
-    ["grade curta", { type: "board_state", session: "s", ts: 1, grid: ["..."] }],
+    ["camera_status sem ts", { type: "camera_status", session: "s", status: "conectada" }],
+    ["camera_status antigo", { type: "camera_status", session: "s", ts: 1, camera: "conectada" }],
+    ["grade curta", { type: "board_state", session: "s", ts: 1, grid: [["."]] }],
+    [
+      "grade em strings",
+      { type: "board_state", session: "s", ts: 1, grid: Array(6).fill("..........") },
+    ],
+    ["game_won sem ts", { type: "game_won", session: "s", tempo_total_s: 1, numero_jogadas: 1 }],
     [
       "casa fora do tabuleiro",
       { type: "piece_placed", session: "s", ts: 1, piece: "F", cells: [[6, 0]], valid: true },
@@ -195,7 +308,7 @@ describe("FonteSimulada", () => {
     expect(status).toHaveBeenCalledWith("conectada");
     // camera_status + 29 linhas.
     expect(recebidas).toHaveLength(30);
-    expect(recebidas.every((m) => m.session === "abc123")).toBe(true);
+    expect(recebidas.every((m) => "session" in m && m.session === "abc123")).toBe(true);
 
     const final = aplicar(recebidas, true);
     expect(final.vitoria?.origem).toBe("local");

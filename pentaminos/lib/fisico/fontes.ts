@@ -123,13 +123,12 @@ export class FonteSimulada implements FonteEventos {
     let proximo = 0;
 
     onStatus("conectada");
-    // Câmera simulada.
+    // Como o loop_ao_vivo.py com --fonte sintetica.
     onMensagem({
       type: "camera_status",
       session: this.sessaoId,
       ts: Math.floor(Date.now() / 1000),
-      camera: "conectada",
-      tabuleiro: "detectado",
+      status: "sintetica",
     });
 
     this.timer = setInterval(() => {

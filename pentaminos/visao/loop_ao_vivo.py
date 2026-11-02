@@ -64,7 +64,7 @@ async def executar(args):
             async def enviar(msg): await ws.send(json.dumps(msg,ensure_ascii=False))
             grade_atual=None
             status_inicial = 'sintetica' if args.fonte == 'sintetica' else ('conectada' if captura.isOpened() else 'perdida')
-            await enviar({'type':'camera_status','status':status_inicial,'session':args.sessao})
+            await enviar({'type':'camera_status','status':status_inicial,'session':args.sessao,'ts':int(time.time())})
             anterior_status = 'perdida' if status_inicial == 'perdida' else None
             while True:
                 tick=time.monotonic()
@@ -83,13 +83,13 @@ async def executar(args):
                 ok,frame=captura.read()
                 if not ok:
                     if anterior_status!='perdida':
-                        await enviar({'type':'camera_status','status':'perdida','session':args.sessao})
+                        await enviar({'type':'camera_status','status':'perdida','session':args.sessao,'ts':int(time.time())})
                         anterior_status='perdida'
                     await asyncio.sleep(0.5); continue
                 if anterior_status == 'perdida':
-                    await enviar({'type':'camera_status','status':'conectada','session':args.sessao})
+                    await enviar({'type':'camera_status','status':'conectada','session':args.sessao,'ts':int(time.time())})
                 if anterior_status!='tabuleiro_detectado':
-                    await enviar({'type':'camera_status','status':'tabuleiro_detectado','session':args.sessao}); anterior_status='tabuleiro_detectado'
+                    await enviar({'type':'camera_status','status':'tabuleiro_detectado','session':args.sessao,'ts':int(time.time())}); anterior_status='tabuleiro_detectado'
                 resultado=pipe.processar(frame)
                 if resultado.descartado:
                     LOG.info('Quadro descartado: %s',resultado.motivo)
@@ -99,7 +99,7 @@ async def executar(args):
                     await enviar(msg)
                     if msg.get('type') in ('piece_placed','piece_removed') and msg.get('type')=='piece_placed': jogadas+=1
                 if resultado.estado and resultado.estado.vitoria:
-                    await enviar({'type':'game_won','session':args.sessao,'tempo_total_s':int(time.monotonic()-inicio),'numero_jogadas':jogadas,'grid':grade_atual})
+                    await enviar({'type':'game_won','session':args.sessao,'tempo_total_s':int(time.monotonic()-inicio),'numero_jogadas':jogadas,'grid':grade_atual,'ts':int(time.time())})
                     break
                 await asyncio.sleep(max(0,intervalo-(time.monotonic()-tick)))
     finally: captura.release()
