@@ -1,4 +1,4 @@
-"""Compara os modos de identificação "cor" e "forma" nas fotos reais (gera comparacao_modos.md)."""
+"""Compara os modos "cor" e "forma" nas fotos reais."""
 from __future__ import annotations
 
 import argparse

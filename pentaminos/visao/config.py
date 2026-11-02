@@ -20,12 +20,12 @@ class Config:
     # --- classificação ---
     peso_l: float = 0.5              # peso da luminosidade (L) na distância Lab; a, b valem 1
     limiar_incerto: float = 16.0     # distância Lab ponderada máx. até a cor mais próxima
-    identificacao: str = "cor"       # "cor" (paleta casa a casa) ou "forma" (grupos + forma da peça)
-    # --- modo "forma" (ver comparacao_modos.md) ---
-    limiar_ocupada: float = 26.0     # distância até a casa vazia que separa vazia de ocupada
-    margem_ocupada: float = 4.0      # faixa em volta do limiar_ocupada que vira "?"
-    limiar_mesma_peca: float = 20.0  # distância máx. entre vizinhas para ficarem no mesmo grupo
-    max_divisoes: int = 200          # divisões de um grupo grande examinadas (Algoritmo X)
+    identificacao: str = "cor"       # "cor" ou "forma"
+    # --- modo "forma" ---
+    limiar_ocupada: float = 26.0     # vazia × ocupada (distância à casa vazia)
+    margem_ocupada: float = 4.0      # faixa do limiar_ocupada que vira "?"
+    limiar_mesma_peca: float = 20.0  # vizinhas abaixo disto ficam no mesmo grupo
+    max_divisoes: int = 200          # divisões examinadas por grupo grande
     # --- estabilização / oclusão ---
     quadros_estaveis: int = 3        # quadros consecutivos iguais para publicar
     max_incertas: int = 3            # casas incertas toleradas num quadro (mão/sombra passam disso)
@@ -36,7 +36,7 @@ class Config:
     # --- arquivos ---
     arquivo_homografia: str = "calibracao/homografia.json"
     arquivo_paleta: str = "calibracao/paleta.json"
-    arquivo_vazio: str = "calibracao/vazio.json"   # cor de cada casa vazia (python forma.py FOTO)
+    arquivo_vazio: str = "calibracao/vazio.json"   # cor de cada casa vazia
 
     def __post_init__(self):
         if self.identificacao not in ("cor", "forma"):

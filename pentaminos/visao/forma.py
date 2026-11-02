@@ -1,4 +1,4 @@
-"""Identificação das peças pela forma (alternativa ao modo por cor)."""
+"""Identificação das peças pela forma."""
 from __future__ import annotations
 
 import argparse
@@ -23,7 +23,7 @@ def distancia(a: np.ndarray, b: np.ndarray, peso_l: float) -> np.ndarray:
 
 
 def referencia_vazio(cores_vazio: np.ndarray | None, paleta: Paleta, linhas: int, colunas: int) -> np.ndarray:
-    """Cor de cada casa vazia: a medida no tabuleiro vazio ou, sem ela, o "." da paleta."""
+    """Cor da casa vazia: a medida no tabuleiro vazio ou o "." da paleta."""
     if cores_vazio is not None:
         return np.asarray(cores_vazio, np.float32)
     return np.broadcast_to(paleta.cores[VAZIO], (linhas, colunas, 3)).astype(np.float32)
@@ -53,7 +53,7 @@ class _UniaoBusca:
 
 
 def agrupar(cores: np.ndarray, ocupadas: np.ndarray, limiar: float, peso_l: float) -> list[list[Celula]]:
-    """Grupos de casas ocupadas vizinhas com cor parecida entre si (sem olhar a paleta)."""
+    """Junta vizinhas ocupadas de cor parecida (union-find)."""
     uf = _UniaoBusca()
     linhas, colunas = ocupadas.shape
     for r, c in zip(*np.nonzero(ocupadas)):
@@ -75,7 +75,7 @@ def letras_da_forma(casas: list[Celula], espelhar: bool) -> list[str]:
 
 
 def divisoes(casas: list[Celula], espelhar: bool, limite: int) -> list[list[tuple[str, tuple[Celula, ...]]]]:
-    """Até `limite` coberturas exatas do grupo por pentaminós (Algoritmo X de gerar_solucoes)."""
+    """Coberturas exatas do grupo por pentaminós (Algoritmo X)."""
     dentro = set(casas)
     Y: dict[tuple, list[Celula]] = {}
     for letra in LETRAS:
@@ -99,7 +99,7 @@ def custo_cor(divisao, cores: np.ndarray, paleta: Paleta, peso_l: float) -> floa
 
 
 def escolher_divisao(opcoes, cores, paleta: Paleta, peso_l: float, usadas: set[str]):
-    """Menos letras repetidas (no grupo ou em outros grupos) e, depois, menor custo de cor."""
+    """Menos letras repetidas; no empate, menor custo de cor."""
     def chave(divisao):
         letras = [l for l, _ in divisao]
         repetidas = len(letras) - len(set(letras)) + sum(l in usadas for l in letras)
@@ -109,7 +109,7 @@ def escolher_divisao(opcoes, cores, paleta: Paleta, peso_l: float, usadas: set[s
 
 def classificar_forma(cores: np.ndarray, paleta: Paleta, cfg: Config,
                       cores_vazio: np.ndarray | None = None) -> list[list[str]]:
-    """Mesma grade do modo por cor (letra, "." ou "?"), com os nomes vindos da forma."""
+    """Grade igual à do modo cor, com os nomes pela forma."""
     linhas, colunas = cores.shape[:2]
     estado = ocupacao(cores, referencia_vazio(cores_vazio, paleta, linhas, colunas), cfg)
     grade = [[VAZIO if estado[r, c] == VAZIA else INCERTO for c in range(colunas)] for r in range(linhas)]
@@ -128,7 +128,7 @@ def classificar_forma(cores: np.ndarray, paleta: Paleta, cfg: Config,
     for casas in pendentes:
         opcoes = divisoes(casas, cfg.espelhar, cfg.max_divisoes) if len(casas) % 5 == 0 else []
         escolhida = escolher_divisao(opcoes, cores, paleta, cfg.peso_l, usadas)
-        if escolhida is None:   # sem divisão em pentaminós: volta ao modo por cor
+        if escolhida is None:   # sem divisão: modo por cor
             for r, c in casas:
                 grade[r][c] = por_cor[r][c]
             continue
