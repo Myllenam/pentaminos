@@ -47,6 +47,17 @@ def test_registra_todas_as_mensagens_reais_do_demo(db, mensagens_demo):
     assert sessao.numero_jogadas == 12
 
 
+def test_piece_placed_manual_e_aceito(db, mensagens_demo):
+    sessao = nova_sessao(db)
+    primeira = eventos_de_peca(mensagens_demo, sessao.id)[0]
+
+    jogada = services.registrar_evento(db, {**primeira, "manual": True})
+
+    db.refresh(sessao)
+    assert (jogada.tipo, jogada.peca, jogada.valida) == ("piece_placed", "F", True)
+    assert sessao.numero_jogadas == 1
+
+
 def test_primeira_jogada_real_guarda_os_campos_da_mensagem(db, mensagens_demo):
     sessao = nova_sessao(db)
     primeira = eventos_de_peca(mensagens_demo, sessao.id)[0]

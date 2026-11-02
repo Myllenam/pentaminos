@@ -11,14 +11,15 @@ router = APIRouter(tags=['tempo real'])
 _salas: dict[str, set[WebSocket]] = defaultdict(set)
 
 def _erro_atribuicao(msg: dict) -> str | None:
-    """Confere a letra e as 5 casas do assign_piece."""
+    """Confere a letra e as casas (1 a 5) do assign_piece."""
     casas = msg.get('cells')
     if msg.get('piece') not in LETRAS:
         return 'Peça inválida.'
-    if not isinstance(casas, list) or len(casas) != 5 or not all(
-            isinstance(c, list) and len(c) == 2 and all(isinstance(x, int) for x in c)
+    if not isinstance(casas, list) or not 1 <= len(casas) <= 5 or not all(
+            isinstance(c, list) and len(c) == 2
+            and all(isinstance(x, int) and not isinstance(x, bool) for x in c)
             and 0 <= c[0] < LINHAS and 0 <= c[1] < COLUNAS for c in casas):
-        return 'cells deve ter 5 casas [linha, coluna] do tabuleiro.'
+        return 'cells deve ter de 1 a 5 casas [linha, coluna] do tabuleiro.'
     return None
 
 async def _broadcast(sessao: str, payload: dict, origem: WebSocket):
