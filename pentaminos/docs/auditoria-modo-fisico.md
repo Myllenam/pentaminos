@@ -1,6 +1,6 @@
 # Auditoria do modo físico
 
-Estado da branch `feat/tela-jogo-fisico` depois do merge da visão computacional (`3104bf5`)
+Estado da branch `feat/tela-jogo-fisico` com o commit da visão computacional (`51db02c`, da Ana)
 e do contrato do WebSocket. Caminhos relativos a `pentaminos/`.
 
 **Legenda:** **Feito** · **Parcial** · **Falta** · **Esquisito** (funciona, mas está estranho
@@ -87,7 +87,7 @@ completo e histórico com filtro por modo.
 
 | Item | Status | Evidência | Como resolver |
 |---|---|---|---|
-| Tela física duplicada | **Feito** | `app/fisico/page.tsx` removida no commit `14dbcd3`; nenhuma referência sobrou (`pnpm build` lista só `/jogar-fisico`). | — |
+| Tela física duplicada | **Feito** | `app/fisico/page.tsx` removida no commit `3198c88`; nenhuma referência sobrou (`pnpm build` lista só `/jogar-fisico`). | — |
 | Fotos no git | **Esquisito** | `visao/fotos-pentaminos/`: 52 arquivos, 6,2 MB (`du -sh`), 3 com nome `WhatsApp Image 2026-10-29 at …` (`git ls-files`); sem `.gitattributes`, então sem Git LFS. | Renomear as 3 fotos (ex.: `tabuleiro_3_*.jpeg`) e, se o conjunto crescer, mover para Git LFS ou para um release. |
 | `saida.txt` versionado | **Esquisito** | `git ls-files saida.txt`: arquivo de saída de script (avaliação experimental), em UTF-16. | Tirar do git e gerar sob demanda (ou salvar em UTF-8 em `docs/`). |
 | Rota de teste em produção | **Esquisito** | `app/teste-worker/page.tsx` aparece no `pnpm build` como `/teste-worker`. | Mover para um teste ou proteger por variável de ambiente. |
