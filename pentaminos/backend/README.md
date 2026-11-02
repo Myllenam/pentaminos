@@ -4,6 +4,15 @@ API REST (FastAPI) que guarda as sessões de jogo, as jogadas e a calibração d
 Recebe os eventos que o serviço de visão (`../visao/`) gera. Ainda **não** tem WebSocket:
 ele entra na próxima atividade e vai chamar `app/services.py`.
 
+## Decisões (Atividade 6)
+
+| Decisão | Escolha | Por quê |
+|---|---|---|
+| Onde roda o backend | **Servidor separado em FastAPI** (Python), fora do Next.js | A visão (OpenCV) já é Python; manter o mesmo idioma evita reescrever as regras e deixa o front só como interface. As rotas de API do Next.js ficariam presas ao ciclo do front e não combinam com uma conexão longa de câmera. |
+| Tempo real | **WebSocket nativo do FastAPI**, na próxima atividade | A visão só envia eventos JSON simples para o servidor; não precisa de salas, reconexão automática ou fallback, que são o que o Socket.IO traria. Nativo = menos dependência no front e no back. |
+| Banco | **SQLite** no desenvolvimento, **Postgres** em produção, via `DATABASE_URL` | SQLite não exige instalar nada e basta para a demo e os testes; o SQLAlchemy + Alembic deixam trocar para Postgres sem mexer no código. |
+| Organização | `routers/` (HTTP) → `services.py` (regras) → `models.py` (tabelas) | As regras não dependem de HTTP, então o WebSocket reaproveita `services.registrar_evento`. |
+
 ## Instalação (Windows / PowerShell)
 
 ```powershell
@@ -69,6 +78,8 @@ edite `app/models.py` e rode `alembic revision --autogenerate -m "descrição"`.
 | `GET` | `/sessions/{id}` | Sessão com `jogadas` por `sequencia`; 404 se não existir |
 | `POST` | `/sessions/{id}/finish` | `{tabuleiro_final}` → `vencida` + `tempo_total_s` |
 | `POST` | `/sessions/{id}/abandon` | → `abandonada` |
+| `POST` | `/sessions/{id}/events` | Registra um evento da visão (`piece_placed` / `piece_removed`) → 201 com a jogada |
+| `POST` | `/sessions/{id}/hint` | Conta uma dica usada → sessão atualizada |
 | `POST` | `/calibration` | `{paleta, homografia?}` → 201 |
 | `GET` | `/calibration/latest` | Última calibração; 404 se não houver |
 
@@ -94,6 +105,23 @@ Recusa (`DadosInvalidos`): tipo diferente de `piece_placed`/`piece_removed` (inc
 peça fora de `FILNPTUVWXYZ`, casa fora do 6×10, `valid` que não seja booleano.
 Recusa com `NaoEncontrado` / `ConflitoDeEstado` se a sessão não existe / não está em andamento.
 
+### `POST /sessions/{id}/events`
+
+Corpo no mesmo formato da seção acima; o campo `session` é opcional (vale o id da URL) e,
+se vier, precisa ser igual. Mesmos erros do serviço: `404`, `409` e `422`.
+
+```powershell
+curl.exe -X POST localhost:8000/sessions/ID/events -H "Content-Type: application/json" `
+     -d '{\"type\":\"piece_placed\",\"piece\":\"F\",\"cells\":[[3,2],[4,2],[4,3],[5,1],[5,2]],\"valid\":true}'
+```
+
+### Como contar "dicas usadas"
+
+O jogo ainda não tem dicas, então a regra fica definida aqui para quando tiver: **cada dica mostrada
+ao jogador faz o front chamar `POST /sessions/{id}/hint`, e cada chamada soma 1 em `dicas_usadas`**.
+Não há limite nem desconto de tempo; só sessões `em_andamento` aceitam (senão `409`). O valor
+aparece em `GET /sessions/{id}` e fica guardado depois de `finish`/`abandon`.
+
 ## Preparado para o WebSocket
 
 Crie `app/routers/ws.py` com um `APIRouter`, chame `services.registrar_evento(db, mensagem)` a cada
@@ -102,5 +130,5 @@ mensagem recebida e inclua o router em `app/main.py`. As funções de serviço n
 ## Limitações
 
 - Sem autenticação: quem alcança a API pode criar, finalizar e abandonar sessões.
-- Ainda não há rota REST para registrar jogadas; só o serviço (o WebSocket vai usá-lo).
-- `dicas_usadas` existe no modelo, mas nenhuma rota o altera ainda.
+- A visão ainda não envia os eventos sozinha: hoje quem chama `/events` é o cliente (ou o WebSocket, na próxima atividade).
+- O jogo ainda não tem dicas; a rota `/hint` está pronta, mas nada a chama até o front implementá-las.

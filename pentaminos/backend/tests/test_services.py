@@ -222,3 +222,53 @@ def test_abandonar_sessao_ja_vencida_da_conflito(db):
 
     with pytest.raises(ConflitoDeEstado):
         services.abandonar_sessao(db, sessao.id)
+
+
+# --- registrar_evento_da_sessao / registrar_dica --------------------------
+
+def test_evento_da_sessao_usa_o_id_da_url_quando_o_corpo_nao_tem(db):
+    sessao = nova_sessao(db)
+    corpo = evento(sessao.id)
+    del corpo["session"]
+
+    jogada = services.registrar_evento_da_sessao(db, sessao.id, corpo)
+
+    assert jogada.sessao_id == sessao.id and jogada.sequencia == 1
+
+
+def test_evento_da_sessao_recusa_id_diferente(db):
+    sessao = nova_sessao(db)
+
+    with pytest.raises(DadosInvalidos):
+        services.registrar_evento_da_sessao(db, sessao.id, evento("outra"))
+
+
+def test_evento_da_sessao_recusa_o_que_nao_e_objeto(db):
+    sessao = nova_sessao(db)
+
+    with pytest.raises(DadosInvalidos):
+        services.registrar_evento_da_sessao(db, sessao.id, [1, 2])
+
+
+def test_registrar_dica_incrementa(db):
+    sessao = nova_sessao(db)
+
+    services.registrar_dica(db, sessao.id)
+    services.registrar_dica(db, sessao.id)
+    services.registrar_dica(db, sessao.id)
+
+    assert sessao.dicas_usadas == 3
+
+
+def test_registrar_dica_sessao_inexistente(db):
+    with pytest.raises(NaoEncontrado):
+        services.registrar_dica(db, "nao-existe")
+
+
+def test_registrar_dica_em_sessao_abandonada_da_conflito(db):
+    sessao = nova_sessao(db)
+    services.abandonar_sessao(db, sessao.id)
+
+    with pytest.raises(ConflitoDeEstado):
+        services.registrar_dica(db, sessao.id)
+    assert sessao.dicas_usadas == 0

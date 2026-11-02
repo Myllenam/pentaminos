@@ -1,10 +1,13 @@
-from fastapi import APIRouter, Depends, status
+from typing import Any
+
+from fastapi import APIRouter, Body, Depends, status
 from sqlalchemy.orm import Session
 
 from app import services
 from app.db import get_db
 from app.schemas import (
     FinalizarSessao,
+    JogadaOut,
     Modo,
     SessaoCriar,
     SessaoDetalhe,
@@ -44,3 +47,23 @@ def finalizar(sessao_id: str, corpo: FinalizarSessao, db: Session = Depends(get_
 @router.post("/{sessao_id}/abandon", response_model=SessaoOut)
 def abandonar(sessao_id: str, db: Session = Depends(get_db)):
     return services.abandonar_sessao(db, sessao_id)
+
+
+@router.post(
+    "/{sessao_id}/events",
+    response_model=JogadaOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def registrar_jogada(
+    sessao_id: str,
+    evento: dict[str, Any] = Body(...),
+    db: Session = Depends(get_db),
+):
+    """Registra um evento da visão (piece_placed / piece_removed) na sessão."""
+    return services.registrar_evento_da_sessao(db, sessao_id, evento)
+
+
+@router.post("/{sessao_id}/hint", response_model=SessaoOut)
+def usar_dica(sessao_id: str, db: Session = Depends(get_db)):
+    """Conta uma dica usada na sessão."""
+    return services.registrar_dica(db, sessao_id)

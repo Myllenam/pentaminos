@@ -105,6 +105,26 @@ def abandonar_sessao(db: Session, sessao_id: str) -> Sessao:
     return _encerrar(db, sessao, "abandonada")
 
 
+def registrar_dica(db: Session, sessao_id: str) -> Sessao:
+    """Conta uma dica usada.
+
+    Regra: cada dica mostrada ao jogador soma 1 em dicas_usadas, sem limite e
+    sem descontar nada do tempo. Só vale em sessão em andamento. O incremento é
+    feito no banco (igual a numero_jogadas), para dois pedidos simultâneos não
+    se perderem.
+    """
+    sessao = buscar_sessao(db, sessao_id)
+    _exigir_em_andamento(sessao)
+    db.execute(
+        update(Sessao)
+        .where(Sessao.id == sessao.id)
+        .values(dicas_usadas=Sessao.dicas_usadas + 1)
+    )
+    db.commit()
+    db.refresh(sessao)
+    return sessao
+
+
 def _validar_grade(grade: Any) -> list[list[str | None]]:
     if not isinstance(grade, (list, tuple)) or len(grade) != LINHAS:
         raise DadosInvalidos(f"tabuleiro_final deve ter {LINHAS} linhas.")
@@ -185,6 +205,23 @@ def registrar_evento(db: Session, mensagem: Mapping[str, Any]) -> Jogada:
     db.commit()
     db.refresh(sessao)
     return jogada
+
+
+def registrar_evento_da_sessao(
+    db: Session, sessao_id: str, mensagem: Mapping[str, Any]
+) -> Jogada:
+    """Versão para a rota REST: o id da sessão vem da URL.
+
+    O campo 'session' do corpo é opcional; se vier, tem que ser o mesmo da URL.
+    """
+    if not isinstance(mensagem, Mapping):
+        raise DadosInvalidos("O evento deve ser um objeto JSON.")
+    declarada = mensagem.get("session")
+    if declarada is not None and declarada != sessao_id:
+        raise DadosInvalidos(
+            f"O campo 'session' ({declarada!r}) é diferente da sessão da URL ({sessao_id!r})."
+        )
+    return registrar_evento(db, {**mensagem, "session": sessao_id})
 
 
 def _validar_casas(cells: Any) -> list[list[int]]:
