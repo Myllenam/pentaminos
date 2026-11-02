@@ -66,8 +66,7 @@ class Paleta:
 
 
 def pesos_lab(peso_l: float) -> np.ndarray:
-    """Peso de cada canal (L, a, b) na distância. peso_l < 1 dá menos importância à
-    luminosidade, que é o que muda com a exposição da câmera e com sombras."""
+    """Pesos (L, a, b) da distância; peso_l < 1 reduz o efeito de luz e sombra."""
     return np.array([peso_l, 1.0, 1.0], dtype=np.float32)
 
 

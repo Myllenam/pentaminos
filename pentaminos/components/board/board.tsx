@@ -32,9 +32,7 @@ export function Board({
 }: BoardProps) {
   const [hoveredCell, setHoveredCell] = useState<[number, number] | null>(null);
 
-  // ---------------------------------------
-  // PEÇAS JÁ COLOCADAS
-  // ---------------------------------------
+  // Peças colocadas
 
   const cellColorMap = new Map<string, string>();
   const cellLetterMap = new Map<string, string>();
@@ -54,9 +52,7 @@ export function Board({
     });
   });
 
-  // ---------------------------------------
-  // PREVIEW
-  // ---------------------------------------
+  // Preview
 
   const previewCellMap = new Map<string, string>();
   const previewLetterMap = new Map<string, string>();
@@ -86,8 +82,7 @@ export function Board({
       const cells = getPieceCells(shape, previewPiece.rotation, previewOrigin);
 
       cells.forEach(([row, col]) => {
-        // Só desenhamos células que estão
-        // dentro do tabuleiro.
+        // Só dentro do tabuleiro.
         if (row >= 0 && row < config.rows && col >= 0 && col < config.cols) {
           previewCellMap.set(`${row}-${col}`, shape.color);
           previewLetterMap.set(`${row}-${col}`, shape.id);
@@ -98,15 +93,12 @@ export function Board({
 
   const previewBorder = previewValid ? "#22c55e" : "#ef4444";
 
-  // ---------------------------------------
-  // RENDER
-  // ---------------------------------------
-
   return (
     <div
-      className="grid w-fit border border-gray-200"
+      className="grid w-full border border-gray-200"
       style={{
-        gridTemplateColumns: `repeat(${config.cols}, 60px)`,
+        gridTemplateColumns: `repeat(${config.cols}, minmax(0, 1fr))`,
+        maxWidth: config.cols * 60,
       }}
     >
       {Array.from({ length: config.rows }).map((_, row) =>
@@ -133,7 +125,7 @@ export function Board({
               onMouseEnter={() => setHoveredCell([row, col])}
               onMouseLeave={() => setHoveredCell(null)}
               onClick={() => onCellClick?.(row, col)}
-              className="flex h-15 w-15 cursor-pointer select-none items-center justify-center border border-gray-200 text-lg font-bold text-white transition-all"
+              className="flex aspect-square cursor-pointer select-none items-center justify-center border border-gray-200 text-sm font-bold text-white transition-all sm:text-lg"
               style={{
                 backgroundColor:
                   color ?? (showPreview ? previewColor : "white"),

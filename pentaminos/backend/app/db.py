@@ -25,11 +25,7 @@ class Base(DeclarativeBase):
 
 
 class UtcDateTime(TypeDecorator):
-    """DateTime sempre em UTC e com fuso.
-
-    O SQLite devolve datas sem fuso; o Postgres devolve com. Este tipo
-    normaliza os dois para datetime "aware" em UTC.
-    """
+    """DateTime sempre em UTC e com fuso."""
 
     impl = DateTime(timezone=True)
     cache_ok = True

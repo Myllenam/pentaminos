@@ -4,10 +4,7 @@ export interface LogoProps {
   className?: string;
 }
 
-/**
- * Marca do Pentaminós: peça "X" (pentaminó em formato de cruz) em vermelho
- * sobre um fundo na cor primária do tema.
- */
+// Peça X sobre a cor primária.
 export function Logo({ className }: LogoProps) {
   return (
     <span

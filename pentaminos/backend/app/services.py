@@ -1,9 +1,4 @@
-"""Regras de negócio, independentes do HTTP.
-
-Os endpoints REST chamam estas funções e o futuro endpoint WebSocket também.
-Os erros são exceções de ErroServico; a camada HTTP as converte em resposta
-(veja app/main.py).
-"""
+"""Regras de negócio, sem HTTP."""
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -37,9 +32,7 @@ class ConflitoDeEstado(ErroServico):
     status_code = 409
 
 
-# --------------------------------------------------------------------------
 # Sessões
-# --------------------------------------------------------------------------
 
 def criar_sessao(db: Session, jogador: str, modo: str, pecas: int) -> Sessao:
     sessao = Sessao(jogador=jogador, modo=modo, pecas=pecas)
@@ -106,13 +99,7 @@ def abandonar_sessao(db: Session, sessao_id: str) -> Sessao:
 
 
 def registrar_dica(db: Session, sessao_id: str) -> Sessao:
-    """Conta uma dica usada.
-
-    Regra: cada dica mostrada ao jogador soma 1 em dicas_usadas, sem limite e
-    sem descontar nada do tempo. Só vale em sessão em andamento. O incremento é
-    feito no banco (igual a numero_jogadas), para dois pedidos simultâneos não
-    se perderem.
-    """
+    """Soma 1 em dicas_usadas (só em andamento; incremento no banco)."""
     sessao = buscar_sessao(db, sessao_id)
     _exigir_em_andamento(sessao)
     db.execute(
@@ -142,18 +129,10 @@ def _validar_grade(grade: Any) -> list[list[str | None]]:
     return limpa
 
 
-# --------------------------------------------------------------------------
 # Jogadas
-# --------------------------------------------------------------------------
 
 def registrar_evento(db: Session, mensagem: Mapping[str, Any]) -> Jogada:
-    """Registra um evento no formato gerado por visao/pipeline.py:
-
-    {"type": "piece_placed" | "piece_removed", "session": id, "ts": int,
-     "piece": "F", "cells": [[linha, coluna], ...], "valid": true}
-
-    A sequência é a próxima da sessão; numero_jogadas sobe só em piece_placed.
-    """
+    """Registra um evento de visao/pipeline.py."""
     if not isinstance(mensagem, Mapping):
         raise DadosInvalidos("O evento deve ser um objeto JSON.")
 
@@ -210,10 +189,7 @@ def registrar_evento(db: Session, mensagem: Mapping[str, Any]) -> Jogada:
 def registrar_evento_da_sessao(
     db: Session, sessao_id: str, mensagem: Mapping[str, Any]
 ) -> Jogada:
-    """Versão para a rota REST: o id da sessão vem da URL.
-
-    O campo 'session' do corpo é opcional; se vier, tem que ser o mesmo da URL.
-    """
+    """Como registrar_evento, com o id da sessão vindo da URL."""
     if not isinstance(mensagem, Mapping):
         raise DadosInvalidos("O evento deve ser um objeto JSON.")
     declarada = mensagem.get("session")
@@ -258,9 +234,7 @@ def _converter_ts(ts: Any) -> datetime:
         raise DadosInvalidos(f"Valor de 'ts' fora do intervalo: {ts!r}.") from None
 
 
-# --------------------------------------------------------------------------
 # Calibração
-# --------------------------------------------------------------------------
 
 def salvar_calibracao(
     db: Session, paleta: dict[str, list[float]], homografia: list[list[float]] | None

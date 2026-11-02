@@ -38,4 +38,4 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## Modo de tabuleiro físico
 
-A aplicação possui a rota `/fisico`. Inicie o backend FastAPI e o Next.js, abra o modo físico, crie uma sessão e execute o comando exibido na tela em outro terminal. Para testar sem câmera use `python loop_ao_vivo.py --fonte sintetica --sessao ID`; para câmera real use `--fonte 0` ou a URL do aplicativo de câmera. O serviço de visão e o navegador trocam eventos por WebSocket por sala/sessão. Veja `visao/README.md` e `backend/README.md` para detalhes.
+Na tela inicial, escolha **Tabuleiro físico** e clique em Iniciar Partida: a aplicação cria a sessão no backend e abre `/jogar-fisico`. Com o backend FastAPI e o Next.js rodando, execute em outro terminal o comando exibido na tela. Para testar sem câmera use `python loop_ao_vivo.py --fonte sintetica --sessao ID`; para câmera real use `--fonte 0` ou a URL do aplicativo de câmera. O serviço de visão e o navegador trocam eventos por WebSocket por sala/sessão. Veja `visao/README.md` e `backend/README.md` para detalhes.

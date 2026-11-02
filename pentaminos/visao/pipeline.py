@@ -1,9 +1,4 @@
-"""Pipeline completo, de um quadro da câmera às mensagens do contrato JSON.
-
-Passos: retificar -> amostrar casas -> classificar -> descartar (oclusão/incerteza)
--> estabilizar -> validar -> gerar eventos. Ainda não fala WebSocket: devolve as
-mensagens (dicts) para o cliente de rede (fase de integração).
-"""
+"""Pipeline: quadro da câmera -> mensagens do contrato JSON."""
 from __future__ import annotations
 
 import time

@@ -1,10 +1,4 @@
-"""modelo inicial
-
-Revision ID: 0001
-Revises: 
-Create Date: 2026-10-27 19:48:09.717802
-
-"""
+"""Modelo inicial (revisão 0001)."""
 from typing import Sequence, Union
 
 from alembic import op

@@ -36,11 +36,7 @@ def client(db):
 
 @pytest.fixture(scope="session")
 def mensagens_demo() -> list[dict]:
-    """Saída real de `python demo_sintetico.py` (visao/), uma mensagem por linha.
-
-    Os `board_state` do demo imprimem a grade como lista de strings; aqui ela
-    volta ao formato do pipeline (lista de listas de caracteres).
-    """
+    """Mensagens do demo_sintetico.jsonl, com grid em lista de listas."""
     texto = FIXTURE_DEMO.read_text(encoding="utf-8-sig")
     mensagens = [json.loads(linha) for linha in texto.splitlines() if linha.strip()]
     for m in mensagens:

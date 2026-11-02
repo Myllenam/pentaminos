@@ -1,8 +1,4 @@
-"""Regras do jogo compartilhadas pelo backend.
-
-Espelham visao/config.py (6x10) e visao/pentaminos.py (LETRAS); o backend não
-importa de visao/ porque aquele serviço depende de OpenCV.
-"""
+"""Regras do jogo (iguais às de visao/)."""
 
 LINHAS = 6
 COLUNAS = 10
