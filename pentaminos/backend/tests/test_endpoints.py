@@ -285,3 +285,153 @@ def test_latest_devolve_a_mais_recente(client):
 def test_calibracao_invalida_e_422(client, corpo):
     assert client.post("/calibration", json=corpo).status_code == 422
     assert client.get("/calibration/latest").status_code == 404
+
+
+# --- POST /sessions/{id}/events -------------------------------------------
+
+def corpo_evento(**campos):
+    base = {
+        "type": "piece_placed",
+        "ts": 1793141068,
+        "piece": "F",
+        "cells": [[3, 2], [4, 2], [4, 3], [5, 1], [5, 2]],
+        "valid": True,
+    }
+    base.update(campos)
+    return base
+
+
+def test_evento_grava_a_jogada(client):
+    sessao = criar(client, modo="fisico", pecas=12)
+
+    resposta = client.post(f"/sessions/{sessao['id']}/events", json=corpo_evento())
+
+    assert resposta.status_code == 201, resposta.text
+    j = resposta.json()
+    assert (j["sessao_id"], j["sequencia"], j["tipo"]) == (sessao["id"], 1, "piece_placed")
+    assert (j["peca"], j["valida"]) == ("F", True)
+    assert j["casas"] == [[3, 2], [4, 2], [4, 3], [5, 1], [5, 2]]
+    detalhe = client.get(f"/sessions/{sessao['id']}").json()
+    assert detalhe["numero_jogadas"] == 1
+    assert len(detalhe["jogadas"]) == 1
+
+
+def test_evento_aceita_o_campo_session_igual_ao_da_url(client):
+    sessao = criar(client)
+
+    resposta = client.post(
+        f"/sessions/{sessao['id']}/events", json=corpo_evento(session=sessao["id"])
+    )
+
+    assert resposta.status_code == 201
+
+
+def test_evento_recusa_session_diferente_da_url(client):
+    sessao = criar(client)
+
+    resposta = client.post(
+        f"/sessions/{sessao['id']}/events", json=corpo_evento(session="outra-sessao")
+    )
+
+    assert resposta.status_code == 422
+    assert client.get(f"/sessions/{sessao['id']}").json()["jogadas"] == []
+
+
+def test_eventos_mantem_a_ordem_de_colocacao(client, mensagens_demo):
+    sessao = criar(client, modo="fisico", pecas=12)
+    eventos = [m for m in mensagens_demo if m["type"] != "board_state"]
+
+    for m in eventos:
+        corpo = {**m, "session": sessao["id"]}  # o demo traz outro id de sessão
+        resposta = client.post(f"/sessions/{sessao['id']}/events", json=corpo)
+        assert resposta.status_code == 201, resposta.text
+
+    detalhe = client.get(f"/sessions/{sessao['id']}").json()
+    assert [j["sequencia"] for j in detalhe["jogadas"]] == list(range(1, len(eventos) + 1))
+    assert detalhe["numero_jogadas"] == sum(m["type"] == "piece_placed" for m in eventos)
+
+
+@pytest.mark.parametrize(
+    "campos",
+    [
+        {"type": "board_state"},
+        {"type": "outro"},
+        {"piece": "Q"},
+        {"cells": []},
+        {"cells": [[6, 0]]},
+        {"cells": [[0, 10]]},
+        {"valid": "sim"},
+        {"ts": "ontem"},
+    ],
+)
+def test_evento_invalido_e_422_e_nao_grava(client, campos):
+    sessao = criar(client)
+
+    resposta = client.post(f"/sessions/{sessao['id']}/events", json=corpo_evento(**campos))
+
+    assert resposta.status_code == 422
+    assert client.get(f"/sessions/{sessao['id']}").json()["jogadas"] == []
+
+
+def test_evento_com_corpo_que_nao_e_objeto_e_422(client):
+    sessao = criar(client)
+
+    assert client.post(f"/sessions/{sessao['id']}/events", json=[1, 2]).status_code == 422
+
+
+def test_evento_de_sessao_inexistente_e_404(client):
+    assert client.post("/sessions/nao-existe/events", json=corpo_evento()).status_code == 404
+
+
+def test_evento_em_sessao_encerrada_e_409(client):
+    sessao = criar(client)
+    client.post(f"/sessions/{sessao['id']}/abandon")
+
+    resposta = client.post(f"/sessions/{sessao['id']}/events", json=corpo_evento())
+
+    assert resposta.status_code == 409
+
+
+# --- POST /sessions/{id}/hint ---------------------------------------------
+
+def test_dica_soma_um_a_cada_chamada(client):
+    sessao = criar(client)
+
+    primeira = client.post(f"/sessions/{sessao['id']}/hint")
+    segunda = client.post(f"/sessions/{sessao['id']}/hint")
+
+    assert primeira.status_code == 200, primeira.text
+    assert primeira.json()["dicas_usadas"] == 1
+    assert segunda.json()["dicas_usadas"] == 2
+    assert client.get(f"/sessions/{sessao['id']}").json()["dicas_usadas"] == 2
+
+
+def test_dica_nao_mexe_em_numero_jogadas_nem_no_status(client):
+    sessao = criar(client)
+
+    corpo = client.post(f"/sessions/{sessao['id']}/hint").json()
+
+    assert corpo["numero_jogadas"] == 0
+    assert corpo["status"] == "em_andamento"
+
+
+def test_dica_de_sessao_inexistente_e_404(client):
+    assert client.post("/sessions/nao-existe/hint").status_code == 404
+
+
+def test_dica_em_sessao_encerrada_e_409(client):
+    sessao = criar(client)
+    client.post(f"/sessions/{sessao['id']}/abandon")
+
+    assert client.post(f"/sessions/{sessao['id']}/hint").status_code == 409
+    assert client.get(f"/sessions/{sessao['id']}").json()["dicas_usadas"] == 0
+
+
+def test_dicas_ficam_guardadas_ao_finalizar(client):
+    sessao = criar(client)
+    client.post(f"/sessions/{sessao['id']}/hint")
+
+    resposta = client.post(f"/sessions/{sessao['id']}/finish", json={"tabuleiro_final": grade()})
+
+    assert resposta.json()["dicas_usadas"] == 1
+

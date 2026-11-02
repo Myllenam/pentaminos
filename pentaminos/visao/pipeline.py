@@ -44,7 +44,7 @@ class Pipeline:
         self._anterior = topo
 
         cores = cores_das_celulas(topo, cfg.linhas, cfg.colunas, cfg.fracao_central)
-        grade, _ = classificar(cores, self.paleta, cfg.limiar_incerto)
+        grade, _ = classificar(cores, self.paleta, cfg.limiar_incerto, cfg.peso_l)
         incertas = sum(linha.count("?") for linha in grade)
 
         motivo = ""

@@ -57,20 +57,27 @@ class Paleta:
         d = json.loads(Path(caminho).read_text(encoding="utf-8"))
         return cls({k: np.array(v, dtype=np.float32) for k, v in d.items()})
 
-    def distancias_entre_cores(self) -> list[tuple[float, str, str]]:
+    def distancias_entre_cores(self, peso_l: float = 1.0) -> list[tuple[float, str, str]]:
         ks = list(self.cores)
-        pares = [(float(np.linalg.norm(self.cores[a] - self.cores[b])), a, b)
+        w = pesos_lab(peso_l)
+        pares = [(float(np.linalg.norm((self.cores[a] - self.cores[b]) * w)), a, b)
                  for i, a in enumerate(ks) for b in ks[i + 1:]]
         return sorted(pares)
 
 
-def classificar(cores_lab: np.ndarray, paleta: Paleta,
-                limiar: float) -> tuple[list[list[str]], np.ndarray]:
+def pesos_lab(peso_l: float) -> np.ndarray:
+    """Peso de cada canal (L, a, b) na distância. peso_l < 1 dá menos importância à
+    luminosidade, que é o que muda com a exposição da câmera e com sombras."""
+    return np.array([peso_l, 1.0, 1.0], dtype=np.float32)
+
+
+def classificar(cores_lab: np.ndarray, paleta: Paleta, limiar: float,
+                peso_l: float = 1.0) -> tuple[list[list[str]], np.ndarray]:
 
     rotulos = list(paleta.cores)
     refs = np.stack([paleta.cores[r] for r in rotulos])              
     linhas, colunas = cores_lab.shape[:2]
-    d = np.linalg.norm(cores_lab.reshape(-1, 1, 3) - refs[None], axis=2)  
+    d = np.linalg.norm((cores_lab.reshape(-1, 1, 3) - refs[None]) * pesos_lab(peso_l), axis=2)  
     idx = d.argmin(axis=1)
     dmin = d[np.arange(len(idx)), idx].reshape(linhas, colunas)
     grade = [[INCERTO if dmin[r, c] > limiar else rotulos[idx[r * colunas + c]]
