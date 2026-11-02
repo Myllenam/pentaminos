@@ -18,9 +18,16 @@ interface MensagemVisao {
   ts: number; // segundos (epoch)
 }
 
+// Peça que a visão não reconheceu; a tela pergunta ao jogador.
+export interface Duvida {
+  cells: Cell[];
+  candidatas: PentominoId[];
+}
+
 export interface MensagemBoardState extends MensagemVisao {
   type: "board_state";
   grid: GradeVisao;
+  duvidas?: Duvida[];
 }
 
 export interface MensagemPeca extends MensagemVisao {
@@ -78,6 +85,15 @@ export type MensagemFisico =
 
 // Comandos do navegador; o ws.py repassa aos outros clientes da sala.
 export type ComandoFisico = "pause" | "resume" | "restart" | "stop";
+
+// Peça nomeada pelo jogador numa dúvida.
+export interface AtribuirPeca {
+  type: "assign_piece";
+  cells: Cell[];
+  piece: PentominoId;
+}
+
+export type MensagemNavegador = ComandoFisico | AtribuirPeca;
 
 export type StatusConexao =
   | "conectando"

@@ -11,7 +11,8 @@ import {
   tabuleiroCompleto,
 } from "@/lib/fisico/estado";
 import { JogadaServidor, ordemDasJogadas } from "@/lib/fisico/api";
-import { FonteSimulada } from "@/lib/fisico/fontes";
+import { alternarCasa, montarAtribuicao } from "@/lib/fisico/duvida";
+import { FonteSimulada, FonteWebSocket } from "@/lib/fisico/fontes";
 import { validarMensagem } from "@/lib/fisico/validar";
 import { DEMO_FISICO } from "@/lib/mocks/demo-fisico";
 import { MensagemFisico } from "@/lib/types/fisico";
@@ -366,5 +367,66 @@ describe("ordemDasJogadas (GET /sessions/{id})", () => {
     ];
 
     expect(ordemDasJogadas(jogadas)).toEqual(["F", "I"]);
+  });
+});
+
+describe("dúvida da visão e resposta do jogador", () => {
+  const vazia = Array.from({ length: 6 }, () => Array(10).fill("."));
+  const V: [number, number][] = [[0, 0], [1, 0], [2, 0], [2, 1], [2, 2]];
+  const duvida = { cells: V, candidatas: ["V", "Z"] };
+
+  it("board_state com duvidas vai para o estado e some no próximo sem duvidas", () => {
+    const com = validarMensagem({ type: "board_state", session: "s", ts: 1, grid: vazia, duvidas: [duvida] });
+    const estado = reducerFisico(estadoInicial(false), { tipo: "mensagem", mensagem: com! });
+    expect(estado.duvidas).toEqual([duvida]);
+
+    const sem = validarMensagem({ type: "board_state", session: "s", ts: 2, grid: vazia });
+    expect(reducerFisico(estado, { tipo: "mensagem", mensagem: sem! }).duvidas).toEqual([]);
+  });
+
+  it("duvidas malformadas são ignoradas com console.warn", () => {
+    const aviso = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const ruim = { type: "board_state", session: "s", ts: 1, grid: vazia, duvidas: [{ cells: [[9, 9]], candidatas: ["V"] }] };
+    expect(validarMensagem(ruim)).toBeNull();
+    expect(aviso).toHaveBeenCalledOnce();
+  });
+
+  it("tocar numa casa liga e desliga a seleção", () => {
+    const menos = alternarCasa(V, [2, 2]);
+    expect(menos).toHaveLength(4);
+    expect(alternarCasa(menos, [2, 2])).toHaveLength(5);
+  });
+
+  it("só monta a resposta se a seleção formar a peça escolhida", () => {
+    expect(montarAtribuicao(V, "V")).toEqual({ type: "assign_piece", cells: V, piece: "V" });
+    expect(montarAtribuicao(V, "Z")).toBe(
+      "As casas marcadas não formam a peça Z. Toque nas casas para ajustar.",
+    );
+    expect(typeof montarAtribuicao(V.slice(0, 4), "V")).toBe("string");
+  });
+
+  it("FonteWebSocket envia o assign_piece com a sessão", () => {
+    const enviados: string[] = [];
+    class SocketFalso {
+      static OPEN = 1;
+      readyState = 1;
+      onopen: (() => void) | null = null;
+      onmessage = null;
+      onclose = null;
+      constructor() { setTimeout(() => this.onopen?.(), 0); }
+      send(dado: string) { enviados.push(dado); }
+      close() {}
+    }
+    vi.stubGlobal("WebSocket", SocketFalso);
+    const fonte = new FonteWebSocket("abc", "ws://teste");
+    fonte.conectar(() => {}, () => {});
+    fonte.enviar({ type: "assign_piece", cells: V, piece: "V" });
+    fonte.enviar("pause");
+    fonte.desconectar();
+    vi.unstubAllGlobals();
+    expect(enviados.map((e) => JSON.parse(e))).toEqual([
+      { type: "assign_piece", cells: V, piece: "V", session: "abc" },
+      { type: "pause", session: "abc" },
+    ]);
   });
 });

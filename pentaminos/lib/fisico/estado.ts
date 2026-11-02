@@ -3,6 +3,7 @@ import { Cell, PentominoId } from "@/lib/types/pentomino";
 import {
   COLUNAS_FISICO,
   LINHAS_FISICO,
+  Duvida,
   GradeVisao,
   MensagemFisico,
   StatusCamera,
@@ -37,6 +38,7 @@ export interface EstadoFisico {
   eventos: EventoFisico[]; // mais recente primeiro
   numeroJogadas: number; // como no backend: soma 1 a cada piece_placed
   camera: StatusCamera | null; // null = nunca informado
+  duvidas: Duvida[]; // peças que a visão pergunta ao jogador
   cameraDetalhe: string | null; // motivo da leitura instável
   erro: string | null; // último error/camera_error
   vitoria: VitoriaFisica | null;
@@ -64,6 +66,7 @@ export function estadoInicial(
     eventos: [],
     numeroJogadas: 0,
     camera: null,
+    duvidas: [],
     cameraDetalhe: null,
     erro: null,
     vitoria: null,
@@ -114,7 +117,11 @@ function aplicarMensagem(
 ): EstadoFisico {
   switch (mensagem.type) {
     case "board_state":
-      return { ...estado, grade: gradeEmTexto(mensagem.grid) };
+      return {
+        ...estado,
+        grade: gradeEmTexto(mensagem.grid),
+        duvidas: mensagem.duvidas ?? [],
+      };
 
     case "piece_placed": {
       const { piece, cells, valid } = mensagem;

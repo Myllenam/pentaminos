@@ -16,6 +16,9 @@ interface BoardFisicoProps {
   pecasInvalidas?: ReadonlySet<string>;
   // Aviso por cima da grade.
   sobreposicao?: ReactNode;
+  // Casas marcadas numa dúvida ("linha,coluna") e o toque para ajustar.
+  selecionadas?: ReadonlySet<string>;
+  onCasaClick?: (linha: number, coluna: number) => void;
   className?: string;
 }
 
@@ -23,6 +26,8 @@ export function BoardFisico({
   grade,
   pecasInvalidas,
   sobreposicao,
+  selecionadas,
+  onCasaClick,
   className,
 }: BoardFisicoProps) {
   return (
@@ -40,11 +45,14 @@ export function BoardFisico({
             const cor = CORES.get(casa);
             const incerta = casa === "?";
             const invalida = !!cor && !!pecasInvalidas?.has(casa);
+            const marcada = !!selecionadas?.has(`${row},${col}`);
 
             return (
               <div
                 key={`${row}-${col}`}
                 role="gridcell"
+                aria-selected={selecionadas ? marcada : undefined}
+                onClick={onCasaClick ? () => onCasaClick(row, col) : undefined}
                 aria-label={
                   cor
                     ? `${casa}${invalida ? " (inválida)" : ""}`
@@ -52,13 +60,18 @@ export function BoardFisico({
                       ? "incerta"
                       : "vazia"
                 }
-                className="flex aspect-square select-none items-center justify-center border border-gray-200 text-sm font-bold text-white transition-colors sm:text-lg"
+                className={cn(
+                  "flex aspect-square select-none items-center justify-center border border-gray-200 text-sm font-bold text-white transition-colors sm:text-lg",
+                  onCasaClick && "cursor-pointer",
+                )}
                 style={{
                   backgroundColor: cor ?? "white",
                   backgroundImage: incerta ? HACHURA_INCERTA : undefined,
-                  boxShadow: invalida
-                    ? "inset 0 0 0 3px #dc2626"
-                    : undefined,
+                  boxShadow: marcada
+                    ? "inset 0 0 0 4px #2563eb"
+                    : invalida
+                      ? "inset 0 0 0 3px #dc2626"
+                      : undefined,
                 }}
               >
                 {cor ? casa : incerta ? (

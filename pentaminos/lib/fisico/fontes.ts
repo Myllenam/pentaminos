@@ -1,7 +1,7 @@
 import { validarMensagem } from "@/lib/fisico/validar";
 import { DEMO_FISICO } from "@/lib/mocks/demo-fisico";
 import {
-  ComandoFisico,
+  MensagemNavegador,
   MensagemFisico,
   StatusConexao,
 } from "@/lib/types/fisico";
@@ -16,7 +16,7 @@ export interface FonteEventos {
   conectar(onMensagem: OnMensagem, onStatus: OnStatus): void;
   desconectar(): void;
   // Repassado pelo ws.py ao loop_ao_vivo.py.
-  enviar(comando: ComandoFisico): void;
+  enviar(mensagem: MensagemNavegador): void;
 }
 
 export const WS_URL =
@@ -56,9 +56,10 @@ export class FonteWebSocket implements FonteEventos {
     this.socket = null;
   }
 
-  enviar(comando: ComandoFisico) {
+  enviar(mensagem: MensagemNavegador) {
     if (this.socket?.readyState !== WebSocket.OPEN) return;
-    this.socket.send(JSON.stringify({ type: comando, session: this.sessaoId }));
+    const corpo = typeof mensagem === "string" ? { type: mensagem } : mensagem;
+    this.socket.send(JSON.stringify({ ...corpo, session: this.sessaoId }));
   }
 
   private abrir(onMensagem: OnMensagem, onStatus: OnStatus) {
@@ -159,10 +160,10 @@ export class FonteSimulada implements FonteEventos {
     this.timer = null;
   }
 
-  enviar(comando: ComandoFisico) {
-    if (comando === "pause") this.pausada = true;
-    if (comando === "resume") this.pausada = false;
-    if (comando === "stop") this.desconectar();
+  enviar(mensagem: MensagemNavegador) {
+    if (mensagem === "pause") this.pausada = true;
+    if (mensagem === "resume") this.pausada = false;
+    if (mensagem === "stop") this.desconectar();
   }
 
   private agruparPorQuadro(): MensagemFisico[][] {

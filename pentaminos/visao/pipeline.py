@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from config import Config
+from correcao import Correcoes, Duvidas
 from estabilizacao import Estabilizador, mudanca_media
 from forma import classificar_combinado, classificar_forma
 from localizacao import retificar
@@ -20,6 +21,7 @@ class ResultadoQuadro:
     motivo: str = ""
     estado: ResultadoEstado | None = None      # preenchido quando um novo estado estabilizou
     mensagens: list[dict] = field(default_factory=list)
+    avisos: list[str] = field(default_factory=list)     # linhas para o log
 
 
 class Pipeline:
@@ -30,12 +32,20 @@ class Pipeline:
         self._estab = Estabilizador(cfg.quadros_estaveis)
         self._anterior: np.ndarray | None = None
         self._estado: ResultadoEstado | None = None
+        self.correcoes = Correcoes(cfg.quadros_estaveis)
+        self._duvidas = Duvidas(cfg.tempo_duvida_s)
+        self._duvidas_enviadas: list[dict] = []
 
     @property
     def estado_atual(self) -> ResultadoEstado | None:
         return self._estado
 
-    def processar(self, frame: np.ndarray, ts: int | None = None) -> ResultadoQuadro:
+    def atribuir(self, casas, letra) -> str | None:
+        """Peça nomeada pelo jogador; devolve o motivo se for recusada."""
+        return self.correcoes.atribuir(casas, letra, self.cfg.espelhar)
+
+    def processar(self, frame: np.ndarray, ts: int | None = None,
+                  agora: float | None = None) -> ResultadoQuadro:
         cfg = self.cfg
         topo = retificar(frame, self.H, cfg.largura_px, cfg.altura_px)
         movimento = mudanca_media(topo, self._anterior) if self._anterior is not None else 0.0
@@ -59,18 +69,35 @@ class Pipeline:
             self._estab.atualizar(None)
             return ResultadoQuadro(True, motivo)
 
+        grade, descartadas = self.correcoes.aplicar(grade)
+        avisos = [f"correção de {l} descartada: casas vazias" for l in descartadas]
         novo = self._estab.atualizar(self._lembrar(grade))
+        ts = int(time.time()) if ts is None else ts
+        agora = time.monotonic() if agora is None else agora
         if novo is None:
-            return ResultadoQuadro(False)
+            if self._estado is None:
+                return ResultadoQuadro(False, avisos=avisos)
+            duvidas = self._duvidas.atualizar(self._estado, cores, self.paleta, cfg, agora)
+            if duvidas == self._duvidas_enviadas:
+                return ResultadoQuadro(False, avisos=avisos)
+            self._duvidas_enviadas = duvidas
+            publicada = [list(l) for l in self._estab.publicado]
+            return ResultadoQuadro(False, avisos=avisos, mensagens=[self._board_state(ts, publicada, duvidas)])
 
         resultado = validar_estado(novo, cfg.pecas, cfg.espelhar)
-        ts = int(time.time()) if ts is None else ts
-        msgs: list[dict] = [{"type": "board_state", "session": self.sessao, "ts": ts, "grid": novo}]
+        self._duvidas_enviadas = self._duvidas.atualizar(resultado, cores, self.paleta, cfg, agora)
+        msgs: list[dict] = [self._board_state(ts, novo, self._duvidas_enviadas)]
         for ev in diferencas(self._estado, resultado):
             msgs.append({"type": ev.tipo, "session": self.sessao, "ts": ts, "piece": ev.peca,
                          "cells": [list(c) for c in ev.casas], "valid": ev.valida})
         self._estado = resultado
-        return ResultadoQuadro(False, estado=resultado, mensagens=msgs)
+        return ResultadoQuadro(False, estado=resultado, mensagens=msgs, avisos=avisos)
+
+    def _board_state(self, ts: int, grade, duvidas: list[dict]) -> dict:
+        msg = {"type": "board_state", "session": self.sessao, "ts": ts, "grid": grade}
+        if duvidas:
+            msg["duvidas"] = duvidas
+        return msg
 
     def _lembrar(self, grade: list[list[str]]) -> list[list[str]]:
         """Casa "?" herda a letra publicada se as vizinhas não mudaram."""

@@ -75,6 +75,9 @@ async def executar(args):
                     elif controle.get('type') == 'resume': pausado=False; LOG.info('Loop retomado pelo navegador')
                     elif controle.get('type') == 'restart':
                         LOG.info('Reinício solicitado; encerre e inicie uma nova sessão para reiniciar o pipeline')
+                    elif controle.get('type') == 'assign_piece':
+                        erro=pipe.atribuir(controle.get('cells'),controle.get('piece'))
+                        LOG.info('Jogador nomeou %s em %s%s',controle.get('piece'),controle.get('cells'),f' (recusado: {erro})' if erro else '')
                 except asyncio.TimeoutError: pass
                 if pausado:
                     await asyncio.sleep(0.1); continue
@@ -92,6 +95,7 @@ async def executar(args):
                 agora=time.monotonic()
                 linha=resumo.registrar(resultado.descartado,resultado.motivo,bool(resultado.mensagens),agora)
                 if linha: LOG.info(linha)
+                for aviso in resultado.avisos: LOG.info(aviso)
                 mudanca=instabilidade.atualizar(resultado.descartado,resultado.motivo,agora)
                 if mudanca:
                     LOG.info('Câmera: %s %s',mudanca['status'],mudanca.get('detail',''))

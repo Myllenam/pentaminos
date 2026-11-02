@@ -46,6 +46,7 @@ import {
   ordemDasJogadas,
   SessaoServidor,
 } from "@/lib/fisico/api";
+import { alternarCasa, chaveCasa, montarAtribuicao } from "@/lib/fisico/duvida";
 import { casasPreenchidas, pecasValidas } from "@/lib/fisico/estado";
 import { TipoFonte } from "@/lib/fisico/fontes";
 import { useJogoFisico } from "@/lib/hooks/useJogoFisico";
@@ -56,7 +57,8 @@ import {
   LINHAS_FISICO,
   TOTAL_PECAS_FISICO,
 } from "@/lib/types/fisico";
-import { PentominoId } from "@/lib/types/pentomino";
+import { PENTOMINOES } from "@/lib/mocks/pentominos";
+import { Cell, PentominoId } from "@/lib/types/pentomino";
 
 type Salvamento = "nao_se_aplica" | "salvando" | "salvo" | "erro";
 
@@ -104,6 +106,37 @@ function TelaFisico({
   const [vitoriaFechada, setVitoriaFechada] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  // Ajuste do jogador na dúvida atual (vale só para a dúvida da chave).
+  const [ajuste, setAjuste] = useState<{
+    chave: string;
+    casas: Cell[];
+    outras: boolean;
+    aviso: string | null;
+  } | null>(null);
+
+  const duvida = estado.duvidas[0] ?? null;
+  const chaveDuvida = duvida ? duvida.cells.map(chaveCasa).join(";") : "";
+  const ajusteAtual = ajuste?.chave === chaveDuvida ? ajuste : null;
+  const selecao = ajusteAtual?.casas ?? duvida?.cells ?? [];
+
+  const mudarAjuste = (parcial: Partial<NonNullable<typeof ajuste>>) =>
+    setAjuste({
+      chave: chaveDuvida,
+      casas: selecao,
+      outras: ajusteAtual?.outras ?? false,
+      aviso: null,
+      ...parcial,
+    });
+
+  const responderDuvida = (peca: PentominoId) => {
+    const atribuicao = montarAtribuicao(selecao, peca);
+    if (typeof atribuicao === "string") {
+      mudarAjuste({ aviso: atribuicao });
+      return;
+    }
+    enviar(atribuicao);
+    mudarAjuste({ aviso: `Enviado: ${peca}. Aguardando a câmera confirmar.` });
+  };
   const [salvamento, setSalvamento] =
     useState<Salvamento>("nao_se_aplica");
   const [resultado, setResultado] = useState<ResultadoServidor | null>(null);
@@ -331,9 +364,59 @@ python loop_ao_vivo.py --fonte ${fonte} --sessao ${sessaoId}`;
             </div>
           )}
 
+          {duvida && (
+            <div
+              role="status"
+              className="flex w-full max-w-[640px] flex-col gap-2 rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-900 ring-1 ring-blue-200"
+            >
+              <p className="font-semibold">
+                Não consegui identificar esta peça. Qual é?
+              </p>
+              <p className="text-xs">
+                As casas em azul são as da peça; toque no tabuleiro para ajustar.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {duvida.candidatas.map((peca) => (
+                  <Button key={peca} size="sm" onClick={() => responderDuvida(peca)}>
+                    {peca}
+                  </Button>
+                ))}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => mudarAjuste({ outras: !ajusteAtual?.outras })}
+                >
+                  Outra
+                </Button>
+              </div>
+              {ajusteAtual?.outras && (
+                <div className="flex flex-wrap gap-1">
+                  {PENTOMINOES.filter((p) => !duvida.candidatas.includes(p.id)).map((p) => (
+                    <Button
+                      key={p.id}
+                      size="sm"
+                      variant="outline"
+                      onClick={() => responderDuvida(p.id)}
+                    >
+                      {p.id}
+                    </Button>
+                  ))}
+                </div>
+              )}
+              {ajusteAtual?.aviso && <p className="text-xs">{ajusteAtual.aviso}</p>}
+            </div>
+          )}
+
           <BoardFisico
             grade={estado.grade}
             pecasInvalidas={invalidas}
+            selecionadas={duvida ? new Set(selecao.map(chaveCasa)) : undefined}
+            onCasaClick={
+              duvida
+                ? (linha, coluna) =>
+                    mudarAjuste({ casas: alternarCasa(selecao, [linha, coluna]) })
+                : undefined
+            }
             sobreposicao={
               cameraPerdida ? (
                 <div className="flex max-w-xs flex-col items-center gap-2 rounded-lg bg-white px-5 py-4 text-center shadow-lg ring-1 ring-amber-200">

@@ -29,6 +29,7 @@ class Config:
     limiar_ocupada_fraca: float = 10.0  # casa vazia que pode completar uma peça (reflexo)
     limiar_croma_fraca: float = 6.0  # croma acima do papel que também conta como fraca
     tempo_max_forma_ms: float = 40.0 # prazo da busca por forma em cada quadro
+    tempo_duvida_s: float = 3.0      # peça inválida há mais disto vira pergunta na tela
     # --- estabilização / oclusão ---
     quadros_estaveis: int = 3        # quadros consecutivos iguais para publicar
     max_incertas: int = 3            # "?" tolerados no relatório de calibração

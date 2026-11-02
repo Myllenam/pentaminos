@@ -17,7 +17,7 @@ const STATUS_CAMERA = [
 ];
 
 // Comandos de outro navegador que o ws.py repassa; não mudam a tela.
-const COMANDOS = new Set(["pause", "resume", "restart", "stop"]);
+const COMANDOS = new Set(["pause", "resume", "restart", "stop", "assign_piece"]);
 
 type Registro = Record<string, unknown>;
 
@@ -69,6 +69,21 @@ function ehGrade(valor: unknown): boolean {
   );
 }
 
+function ehDuvidas(valor: unknown): boolean {
+  return (
+    Array.isArray(valor) &&
+    valor.every(
+      (d) =>
+        ehRegistro(d) &&
+        Array.isArray(d.cells) &&
+        d.cells.length > 0 &&
+        d.cells.every(ehCasa) &&
+        Array.isArray(d.candidatas) &&
+        d.candidatas.every(ehPeca),
+    )
+  );
+}
+
 function motivoInvalida(dado: Registro): string | null {
   // O error do ws.py não traz session nem ts.
   if (dado.type === "error") {
@@ -88,9 +103,10 @@ function motivoInvalida(dado: Registro): string | null {
 
   switch (dado.type) {
     case "board_state":
-      return ehGrade(dado.grid)
+      if (!ehGrade(dado.grid)) return "grid deve ter 6 linhas de 10 casas";
+      return dado.duvidas === undefined || ehDuvidas(dado.duvidas)
         ? null
-        : "grid deve ter 6 linhas de 10 casas";
+        : "duvidas inválidas";
 
     case "piece_placed":
     case "piece_removed":

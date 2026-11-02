@@ -9,7 +9,7 @@ import {
   FonteWebSocket,
   TipoFonte,
 } from "@/lib/fisico/fontes";
-import { ComandoFisico, StatusConexao } from "@/lib/types/fisico";
+import { MensagemNavegador, StatusConexao } from "@/lib/types/fisico";
 
 // Depois disso, usa a simulada.
 export const ESPERA_WEBSOCKET_MS = 5000;
@@ -75,8 +75,8 @@ export function useJogoFisico(
     };
   }, [sessaoId, fonteAtiva, intervaloSimuladoMs]);
 
-  const enviar = useCallback((comando: ComandoFisico) => {
-    fonteRef.current?.enviar(comando);
+  const enviar = useCallback((mensagem: MensagemNavegador) => {
+    fonteRef.current?.enviar(mensagem);
   }, []);
 
   return {
