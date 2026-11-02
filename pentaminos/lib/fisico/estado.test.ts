@@ -167,7 +167,7 @@ describe("peças inválidas e câmera", () => {
   });
 });
 
-// Mensagens do contrato (backend/README.md, "Contrato do WebSocket").
+// Mensagens do contrato (docs/contrato-websocket.md).
 describe("contrato do WebSocket", () => {
   const gradeVisao = [
     ["I", "I", "I", "I", "I", ".", ".", ".", ".", "."],

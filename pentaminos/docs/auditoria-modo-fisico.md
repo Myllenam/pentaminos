@@ -44,7 +44,7 @@ ficaram como "não verificável".
 
 ## 3. Contrato de mensagens
 
-O contrato está em `backend/README.md`, seção "Contrato do WebSocket", e é o que
+O contrato está em `docs/contrato-websocket.md` e é o que
 `lib/fisico/validar.ts` confere. No teste de ponta a ponta a tela aceitou as 28 mensagens e
 o validador não descartou nenhuma.
 
@@ -94,5 +94,5 @@ completo e histórico com filtro por modo.
 | `ws.py` difícil de ler | **Esquisito** | Vários comandos por linha com `;` e `try:` de uma linha (`backend/app/routers/ws.py:22`, `:28-29`, `:36-37`, `:55`), diferente do resto do backend. | Reformatar no estilo de `services.py` ao escrever os testes. |
 | `loop_ao_vivo.py` | **Esquisito** | Imports não usados `Config` (`:8`) e `colocar_peca` (`:11`); `localizacao` importado em duas linhas (`:9`, `:13`); condição redundante `in ('piece_placed','piece_removed') and =='piece_placed'` (`:94`). | Limpar ao mexer no loop (reconexão). |
 | Teste do loop | **Esquisito** | `visao/tests/test_loop_ao_vivo.py:6-24` só testa a `FonteSintetica` (formato e ciclo dos quadros); nada testa o envio pelo WebSocket nem os comandos. | Teste com um servidor `websockets` local que confere as mensagens e o `stop`. |
-| Comentários desatualizados | **Esquisito** | `backend/README.md:4-5` e `:12` ("ainda não tem WebSocket", "na próxima atividade"), `:175-177` ("Preparado para o WebSocket"), `:183`. | Atualizar para dizer que o WebSocket existe e apontar para a seção do contrato. |
+| Comentários desatualizados | **Feito** | O `backend/README.md` foi reescrito só com como rodar; o contrato foi para `docs/contrato-websocket.md`. | — |
 | Simulação automática na tela | **Esquisito** | Se o WebSocket não abrir em 5 s, a tela passa sozinha para a partida de demonstração (`lib/hooks/useJogoFisico.ts:15`). Há um aviso, mas um backend fora do ar pode passar despercebido numa apresentação. | Pedir confirmação antes de cair no simulado. |
