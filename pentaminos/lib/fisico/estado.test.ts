@@ -10,6 +10,7 @@ import {
   reducerFisico,
   tabuleiroCompleto,
 } from "@/lib/fisico/estado";
+import { JogadaServidor, ordemDasJogadas } from "@/lib/fisico/api";
 import { FonteSimulada } from "@/lib/fisico/fontes";
 import { validarMensagem } from "@/lib/fisico/validar";
 import { DEMO_FISICO } from "@/lib/mocks/demo-fisico";
@@ -314,5 +315,41 @@ describe("FonteSimulada", () => {
     expect(final.vitoria?.origem).toBe("local");
 
     fonte.desconectar();
+  });
+
+  it("pause para a reprodução e resume continua", () => {
+    vi.useFakeTimers();
+
+    const recebidas: MensagemFisico[] = [];
+    const fonte = new FonteSimulada("abc123", 1000);
+
+    fonte.conectar((m) => recebidas.push(m), () => {});
+    vi.advanceTimersByTime(1000);
+    const antes = recebidas.length;
+
+    fonte.enviar("pause");
+    vi.advanceTimersByTime(5000);
+    expect(recebidas).toHaveLength(antes);
+
+    fonte.enviar("resume");
+    vi.advanceTimersByTime(1000);
+    expect(recebidas.length).toBeGreaterThan(antes);
+
+    fonte.desconectar();
+  });
+});
+
+describe("ordemDasJogadas (GET /sessions/{id})", () => {
+  it("refaz as jogadas: peça removida e recolocada vai para o fim", () => {
+    const jogadas: JogadaServidor[] = [
+      { sequencia: 3, tipo: "piece_removed", peca: "I", valida: true },
+      { sequencia: 1, tipo: "piece_placed", peca: "I", valida: true },
+      { sequencia: 2, tipo: "piece_placed", peca: "F", valida: true },
+      { sequencia: 4, tipo: "piece_placed", peca: "I", valida: true },
+      { sequencia: 5, tipo: "piece_placed", peca: "L", valida: true },
+      { sequencia: 6, tipo: "piece_removed", peca: "L", valida: true },
+    ];
+
+    expect(ordemDasJogadas(jogadas)).toEqual(["F", "I"]);
   });
 });

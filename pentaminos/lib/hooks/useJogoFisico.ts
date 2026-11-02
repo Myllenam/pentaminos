@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 
 import { estadoInicial, reducerFisico } from "@/lib/fisico/estado";
 import {
@@ -9,7 +9,7 @@ import {
   FonteWebSocket,
   TipoFonte,
 } from "@/lib/fisico/fontes";
-import { StatusConexao } from "@/lib/types/fisico";
+import { ComandoFisico, StatusConexao } from "@/lib/types/fisico";
 
 // Depois disso, usa a simulada.
 export const ESPERA_WEBSOCKET_MS = 5000;
@@ -36,12 +36,14 @@ export function useJogoFisico(
   );
 
   const conectouRef = useRef(false);
+  const fonteRef = useRef<FonteEventos | null>(null);
 
   useEffect(() => {
     const fonte: FonteEventos =
       fonteAtiva === "simulada"
         ? new FonteSimulada(sessaoId, intervaloSimuladoMs)
         : new FonteWebSocket(sessaoId);
+    fonteRef.current = fonte;
 
     fonte.conectar(
       (mensagem) => dispatch({ tipo: "mensagem", mensagem }),
@@ -69,8 +71,13 @@ export function useJogoFisico(
     return () => {
       clearTimeout(espera);
       fonte.desconectar();
+      fonteRef.current = null;
     };
   }, [sessaoId, fonteAtiva, intervaloSimuladoMs]);
+
+  const enviar = useCallback((comando: ComandoFisico) => {
+    fonteRef.current?.enviar(comando);
+  }, []);
 
   return {
     estado,
@@ -79,5 +86,6 @@ export function useJogoFisico(
     reconectando: conexao === "conectando" && houveQueda,
     fonteAtiva,
     caiuParaSimulado,
+    enviar,
   };
 }

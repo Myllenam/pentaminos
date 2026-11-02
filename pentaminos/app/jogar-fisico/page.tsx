@@ -37,22 +37,38 @@ import {
 
 import {
   abandonarSessao,
+  buscarSessao,
   criarSessaoFisica,
   criarSessaoLocal,
   ehSessaoLocal,
   finalizarSessao,
+  listarRankingFisico,
+  ordemDasJogadas,
+  SessaoServidor,
 } from "@/lib/fisico/api";
 import { casasPreenchidas, pecasValidas } from "@/lib/fisico/estado";
 import { TipoFonte } from "@/lib/fisico/fontes";
 import { useJogoFisico } from "@/lib/hooks/useJogoFisico";
 import { formatElapsedTime } from "@/lib/ranking";
+import { cn } from "@/lib/utils";
 import {
   COLUNAS_FISICO,
   LINHAS_FISICO,
   TOTAL_PECAS_FISICO,
 } from "@/lib/types/fisico";
+import { PentominoId } from "@/lib/types/pentomino";
 
 type Salvamento = "nao_se_aplica" | "salvando" | "salvo" | "erro";
+
+// O que GET /sessions/{id} e o ranking devolvem depois da vitória.
+type ResultadoServidor =
+  | { tipo: "ok"; ordem: PentominoId[]; ranking: SessaoServidor[] }
+  | { tipo: "erro" };
+
+const COMANDOS_VISAO = [
+  { rotulo: "Sem câmera (fonte sintética)", fonte: "sintetica" },
+  { rotulo: "Câmera real (webcam 0 ou URL do celular)", fonte: "0" },
+];
 
 interface TelaFisicoProps {
   sessaoId: string;
@@ -70,8 +86,15 @@ function TelaFisico({
   const router = useRouter();
   const sessaoLocal = ehSessaoLocal(sessaoId);
 
-  const { estado, venceu, conexao, reconectando, fonteAtiva, caiuParaSimulado } =
-    useJogoFisico(sessaoId, fontePreferida, {
+  const {
+    estado,
+    venceu,
+    conexao,
+    reconectando,
+    fonteAtiva,
+    caiuParaSimulado,
+    enviar,
+  } = useJogoFisico(sessaoId, fontePreferida, {
       intervaloSimuladoMs: intervaloMs,
     });
 
@@ -83,6 +106,7 @@ function TelaFisico({
   const [erro, setErro] = useState<string | null>(null);
   const [salvamento, setSalvamento] =
     useState<Salvamento>("nao_se_aplica");
+  const [resultado, setResultado] = useState<ResultadoServidor | null>(null);
 
   const finalizouRef = useRef(false);
 
@@ -127,6 +151,32 @@ function TelaFisico({
     void salvar();
   }, [venceu, fonteAtiva, sessaoLocal, sessaoId, estado.grade]);
 
+  // Com WebSocket o ws.py já finalizou; no simulado, espera o /finish.
+  const resultadoPronto =
+    venceu &&
+    !sessaoLocal &&
+    (fonteAtiva === "websocket" || salvamento === "salvo");
+
+  useEffect(() => {
+    if (!resultadoPronto) return;
+
+    let cancelado = false;
+
+    Promise.all([buscarSessao(sessaoId), listarRankingFisico()])
+      .then(([sessao, ranking]) => {
+        if (cancelado) return;
+        setResultado({ tipo: "ok", ordem: ordemDasJogadas(sessao.jogadas), ranking });
+      })
+      .catch((falha) => {
+        console.warn("[modo físico] falha ao buscar o resultado", falha);
+        if (!cancelado) setResultado({ tipo: "erro" });
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [resultadoPronto, sessaoId]);
+
   const invalidas = useMemo(
     () =>
       new Set(
@@ -143,7 +193,18 @@ function TelaFisico({
 
   const cameraPerdida = estado.camera === "perdida";
 
+  const comandoVisao = (fonte: string) =>
+    `cd visao
+python loop_ao_vivo.py --fonte ${fonte} --sessao ${sessaoId}`;
+
+  const alternarPausa = () => {
+    enviar(pausado ? "resume" : "pause");
+    setPausado((atual) => !atual);
+  };
+
+  // Encerra o loop_ao_vivo.py antes de abandonar a sessão.
   const abandonarSePreciso = async () => {
+    enviar("stop");
     if (sessaoLocal || venceu) return;
 
     try {
@@ -213,7 +274,7 @@ function TelaFisico({
         <div className="flex w-full gap-2 sm:w-auto [&>button]:w-auto [&>button]:flex-1 sm:[&>button]:flex-none">
           <Button
             variant="outline"
-            onClick={() => setPausado((atual) => !atual)}
+            onClick={alternarPausa}
             disabled={venceu}
           >
             {pausado ? (
@@ -249,6 +310,16 @@ function TelaFisico({
                   ? "Não foi possível conectar ao servidor em tempo real; exibindo uma partida de demonstração."
                   : "Exibindo uma partida de demonstração gravada da câmera."}
               </span>
+            </div>
+          )}
+
+          {estado.erro && (
+            <div
+              role="alert"
+              className="flex w-full max-w-[640px] items-start gap-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-red-200"
+            >
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              <span>Servidor: {estado.erro}</span>
             </div>
           )}
 
@@ -340,6 +411,38 @@ function TelaFisico({
           <PecasFisicas estado={estado} />
 
           <ListaEventos eventos={estado.eventos} />
+
+          {fonteAtiva === "websocket" && (
+            <div className="flex flex-col gap-3 rounded-md border border-border bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+              <span className="text-xs font-medium tracking-wide text-muted-foreground">
+                SERVIÇO DE VISÃO
+              </span>
+              <p className="text-xs text-muted-foreground">
+                Rode um dos comandos em outro terminal, na pasta do projeto.
+                Para o celular, troque <code>0</code> pela URL do aplicativo
+                de câmera.
+              </p>
+              {COMANDOS_VISAO.map(({ rotulo, fonte }) => (
+                <div key={fonte} className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold text-foreground">
+                    {rotulo}
+                  </span>
+                  <pre className="overflow-x-auto rounded bg-zinc-900 p-3 text-xs text-white">
+                    {comandoVisao(fonte)}
+                  </pre>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      void navigator.clipboard?.writeText(comandoVisao(fonte))
+                    }
+                  >
+                    Copiar comando
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </aside>
       </main>
 
@@ -388,8 +491,57 @@ function TelaFisico({
             <p className="text-center text-xs font-semibold text-muted-foreground">
               ORDEM DE COLOCAÇÃO
             </p>
-            <OrdemColocacao ordem={estado.ordemColocacao} />
+            <OrdemColocacao
+              ordem={
+                resultado?.tipo === "ok" ? resultado.ordem : estado.ordemColocacao
+              }
+            />
+            {resultado?.tipo === "ok" && (
+              <p className="text-center text-xs text-muted-foreground">
+                Registrada no servidor.
+              </p>
+            )}
           </div>
+
+          {resultado?.tipo === "ok" && (
+            <div className="flex flex-col gap-2">
+              <p className="text-center text-xs font-semibold text-muted-foreground">
+                RANKING — TABULEIRO FÍSICO
+              </p>
+              {resultado.ranking.length === 0 ? (
+                <p className="text-center text-xs text-muted-foreground">
+                  Nenhuma partida física concluída ainda.
+                </p>
+              ) : (
+                <ol className="flex flex-col gap-1 text-sm">
+                  {resultado.ranking.map((sessao, indice) => (
+                    <li
+                      key={sessao.id}
+                      className={cn(
+                        "flex items-center gap-2 rounded px-2 py-1",
+                        sessao.id === sessaoId && "bg-primary/10 font-semibold",
+                      )}
+                    >
+                      <span className="w-5 text-muted-foreground">{indice + 1}.</span>
+                      <span className="flex-1 truncate">{sessao.jogador}</span>
+                      <span className="font-cousine">
+                        {formatElapsedTime(sessao.tempo_total_s ?? 0)}
+                      </span>
+                      <span className="w-20 text-right text-xs text-muted-foreground">
+                        {sessao.numero_jogadas} jogadas
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          )}
+
+          {resultado?.tipo === "erro" && (
+            <p className="text-center text-xs text-muted-foreground">
+              Não foi possível carregar o resultado do servidor.
+            </p>
+          )}
 
           {salvamento !== "nao_se_aplica" && (
             <p className="text-center text-xs text-muted-foreground">

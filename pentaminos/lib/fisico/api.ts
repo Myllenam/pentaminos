@@ -1,4 +1,5 @@
 import { TOTAL_PECAS_FISICO } from "@/lib/types/fisico";
+import { PentominoId } from "@/lib/types/pentomino";
 
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -16,13 +17,37 @@ export function ehSessaoLocal(sessaoId: string): boolean {
   return sessaoId.startsWith(PREFIXO_LOCAL);
 }
 
-async function postar<T>(caminho: string, corpo?: unknown): Promise<T> {
+// Campos de JogadaOut e SessaoOut em backend/app/schemas.py.
+export interface JogadaServidor {
+  sequencia: number;
+  tipo: "piece_placed" | "piece_removed";
+  peca: PentominoId;
+  valida: boolean;
+}
+
+export interface SessaoServidor {
+  id: string;
+  jogador: string;
+  status: "em_andamento" | "vencida" | "abandonada";
+  tempo_total_s: number | null;
+  numero_jogadas: number;
+}
+
+export interface SessaoDetalheServidor extends SessaoServidor {
+  jogadas: JogadaServidor[];
+}
+
+async function requisitar<T>(
+  caminho: string,
+  metodo: "GET" | "POST",
+  corpo?: unknown,
+): Promise<T> {
   const controle = new AbortController();
   const timer = setTimeout(() => controle.abort(), TEMPO_LIMITE_MS);
 
   try {
     const resposta = await fetch(`${API_URL}${caminho}`, {
-      method: "POST",
+      method: metodo,
       headers: { "Content-Type": "application/json" },
       body: corpo === undefined ? undefined : JSON.stringify(corpo),
       signal: controle.signal,
@@ -51,6 +76,10 @@ async function postar<T>(caminho: string, corpo?: unknown): Promise<T> {
   }
 }
 
+function postar<T>(caminho: string, corpo?: unknown): Promise<T> {
+  return requisitar<T>(caminho, "POST", corpo);
+}
+
 export async function criarSessaoFisica(jogador: string): Promise<string> {
   const sessao = await postar<{ id: string }>("/sessions", {
     jogador,
@@ -77,4 +106,45 @@ export async function finalizarSessao(
   await postar(`/sessions/${encodeURIComponent(sessaoId)}/finish`, {
     tabuleiro_final: tabuleiroFinal,
   });
+}
+
+export function buscarSessao(
+  sessaoId: string,
+): Promise<SessaoDetalheServidor> {
+  return requisitar(`/sessions/${encodeURIComponent(sessaoId)}`, "GET");
+}
+
+// 10 melhores partidas físicas vencidas: menor tempo, depois menos jogadas.
+export async function listarRankingFisico(): Promise<SessaoServidor[]> {
+  const params = new URLSearchParams({
+    modo: "fisico",
+    status: "vencida",
+    pecas: String(TOTAL_PECAS_FISICO),
+  });
+  const sessoes = await requisitar<SessaoServidor[]>(
+    `/sessions?${params.toString()}`,
+    "GET",
+  );
+
+  return [...sessoes]
+    .sort(
+      (a, b) =>
+        (a.tempo_total_s ?? Infinity) - (b.tempo_total_s ?? Infinity) ||
+        a.numero_jogadas - b.numero_jogadas,
+    )
+    .slice(0, 10);
+}
+
+// Ordem em que as peças que ficaram no tabuleiro foram colocadas pela
+// última vez, refazendo as jogadas na ordem de sequencia.
+export function ordemDasJogadas(jogadas: JogadaServidor[]): PentominoId[] {
+  const ordem: PentominoId[] = [];
+
+  for (const jogada of [...jogadas].sort((a, b) => a.sequencia - b.sequencia)) {
+    const indice = ordem.indexOf(jogada.peca);
+    if (indice !== -1) ordem.splice(indice, 1);
+    if (jogada.tipo === "piece_placed") ordem.push(jogada.peca);
+  }
+
+  return ordem;
 }
