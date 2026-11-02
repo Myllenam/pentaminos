@@ -195,14 +195,6 @@ export function GameSetup() {
             type="button"
             variant="outline"
             size="lg"
-            onClick={() => router.push(`/fisico?nome=${encodeURIComponent(name.trim() || "Jogador")}`)}
-          >
-            Modo tabuleiro físico
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
             data-icon="inline-start"
             onClick={() => setRankingOpen(true)}
           >
