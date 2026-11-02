@@ -37,6 +37,7 @@ export interface EstadoFisico {
   eventos: EventoFisico[]; // mais recente primeiro
   numeroJogadas: number; // como no backend: soma 1 a cada piece_placed
   camera: StatusCamera | null; // null = nunca informado
+  cameraDetalhe: string | null; // motivo da leitura instável
   erro: string | null; // último error/camera_error
   vitoria: VitoriaFisica | null;
   // Modo simulado: sem game_won.
@@ -63,6 +64,7 @@ export function estadoInicial(
     eventos: [],
     numeroJogadas: 0,
     camera: null,
+    cameraDetalhe: null,
     erro: null,
     vitoria: null,
     detectarVitoriaLocal,
@@ -163,7 +165,7 @@ function aplicarMensagem(
     }
 
     case "camera_status":
-      return { ...estado, camera: mensagem.status };
+      return { ...estado, camera: mensagem.status, cameraDetalhe: mensagem.detail ?? null };
 
     case "error":
     case "camera_error": {

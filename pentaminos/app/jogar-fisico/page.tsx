@@ -191,7 +191,8 @@ function TelaFisico({
   const preenchidas = casasPreenchidas(estado.grade);
   const tempoFinal = estado.vitoria?.tempoTotalS ?? elapsedSeconds;
 
-  const cameraPerdida = estado.camera === "perdida";
+  const cameraPerdida =
+    estado.camera === "perdida" || estado.camera === "leitura_instavel";
 
   const comandoVisao = (fonte: string) =>
     `cd visao
@@ -338,11 +339,16 @@ python loop_ao_vivo.py --fonte ${fonte} --sessao ${sessaoId}`;
                 <div className="flex max-w-xs flex-col items-center gap-2 rounded-lg bg-white px-5 py-4 text-center shadow-lg ring-1 ring-amber-200">
                   <CameraOff className="size-6 text-amber-600" />
                   <p className="font-semibold text-foreground">
-                    Câmera perdida
+                    {estado.camera === "perdida"
+                      ? "Câmera perdida"
+                      : "Leitura instável"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Mostrando a última leitura. Verifique a câmera e se o
-                    tabuleiro está inteiro no campo de visão.
+                    {estado.camera === "leitura_instavel" && estado.cameraDetalhe
+                      ? `${estado.cameraDetalhe}. `
+                      : ""}
+                    Mostrando a última leitura. Verifique a câmera, a luz e se
+                    o tabuleiro está inteiro no campo de visão.
                   </p>
                 </div>
               ) : null

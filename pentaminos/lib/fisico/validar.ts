@@ -13,6 +13,7 @@ const STATUS_CAMERA = [
   "conectada",
   "perdida",
   "tabuleiro_detectado",
+  "leitura_instavel",
 ];
 
 // Comandos de outro navegador que o ws.py repassa; não mudam a tela.
@@ -111,6 +112,9 @@ function motivoInvalida(dado: Registro): string | null {
         : "valid deve ser booleano";
 
     case "camera_status":
+      if (dado.detail !== undefined && typeof dado.detail !== "string") {
+        return "detail deve ser texto";
+      }
       return STATUS_CAMERA.includes(dado.status as string)
         ? null
         : "status da câmera inválido";

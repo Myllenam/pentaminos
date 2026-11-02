@@ -11,7 +11,7 @@ from estabilizacao import Estabilizador, mudanca_media
 from forma import classificar_combinado, classificar_forma
 from localizacao import retificar
 from validador import ResultadoEstado, diferencas, validar_estado
-from visao import Paleta, classificar, cores_das_celulas
+from visao import INCERTO, VAZIO, Paleta, classificar, cores_das_celulas
 
 
 @dataclass
@@ -53,13 +53,13 @@ class Pipeline:
         motivo = ""
         if movimento > cfg.limiar_mudanca:
             motivo = f"movimento entre quadros ({movimento:.1f})"
-        elif incertas > cfg.max_incertas:
+        elif incertas > cfg.max_incertas_mao:
             motivo = f"{incertas} casas incertas"
         if motivo:
             self._estab.atualizar(None)
             return ResultadoQuadro(True, motivo)
 
-        novo = self._estab.atualizar(grade)
+        novo = self._estab.atualizar(self._lembrar(grade))
         if novo is None:
             return ResultadoQuadro(False)
 
@@ -71,3 +71,21 @@ class Pipeline:
                          "cells": [list(c) for c in ev.casas], "valid": ev.valida})
         self._estado = resultado
         return ResultadoQuadro(False, estado=resultado, mensagens=msgs)
+
+    def _lembrar(self, grade: list[list[str]]) -> list[list[str]]:
+        """Casa "?" herda a letra publicada se as vizinhas não mudaram."""
+        antes = self._estab.publicado
+        if antes is None:
+            return grade
+        nova = [linha[:] for linha in grade]
+        linhas, colunas = len(grade), len(grade[0])
+        for r in range(linhas):
+            for c in range(colunas):
+                letra = antes[r][c]
+                if grade[r][c] != INCERTO or letra in (VAZIO, INCERTO):
+                    continue
+                vizinhas = [(r + dr, c + dc) for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1))
+                            if 0 <= r + dr < linhas and 0 <= c + dc < colunas]
+                if all(grade[i][j] in (INCERTO, antes[i][j]) for i, j in vizinhas):
+                    nova[r][c] = letra
+        return nova

@@ -196,6 +196,22 @@ describe("contrato do WebSocket", () => {
     },
   );
 
+  it("leitura_instavel guarda o motivo e volta com tabuleiro_detectado", () => {
+    const instavel = receber({
+      type: "camera_status",
+      session: "s",
+      ts: 1,
+      status: "leitura_instavel",
+      detail: "movimento entre quadros (12.0)",
+    });
+    expect(instavel.camera).toBe("leitura_instavel");
+    expect(instavel.cameraDetalhe).toBe("movimento entre quadros (12.0)");
+
+    const voltou = receber({ type: "camera_status", session: "s", ts: 2, status: "tabuleiro_detectado" }, instavel);
+    expect(voltou.camera).toBe("tabuleiro_detectado");
+    expect(voltou.cameraDetalhe).toBeNull();
+  });
+
   it("game_won com a grade final", () => {
     const estado = receber({
       type: "game_won",

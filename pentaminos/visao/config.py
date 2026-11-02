@@ -28,7 +28,8 @@ class Config:
     max_divisoes: int = 200          # divisões examinadas por grupo grande
     # --- estabilização / oclusão ---
     quadros_estaveis: int = 3        # quadros consecutivos iguais para publicar
-    max_incertas: int = 3            # casas incertas toleradas num quadro (mão/sombra passam disso)
+    max_incertas: int = 3            # "?" tolerados no relatório de calibração
+    max_incertas_mao: int = 10       # acima disto o quadro é mão em cima: descartado
     limiar_mudanca: float = 8.0      # (AJUSTAR) diferença média entre quadros (0-255)
     # --- captura ---
     fonte_camera: str = "0"          # índice da webcam ou URL do app de celular

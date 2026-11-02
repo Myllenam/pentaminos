@@ -35,11 +35,13 @@ export type StatusCamera =
   | "sintetica"
   | "conectada"
   | "perdida"
-  | "tabuleiro_detectado";
+  | "tabuleiro_detectado"
+  | "leitura_instavel"; // quadros descartados há mais de ~3 s
 
 export interface MensagemCameraStatus extends MensagemVisao {
   type: "camera_status";
   status: StatusCamera;
+  detail?: string; // motivo, em leitura_instavel
 }
 
 export interface MensagemGameWon extends MensagemVisao {

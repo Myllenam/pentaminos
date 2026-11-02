@@ -193,7 +193,7 @@ def gerar(pasta: Path, saida: Path) -> str:
 
     # 4. fotos com mão
     P("## 4. Fotos com mão (devem ser descartadas)\n")
-    P(f"O pipeline descarta o quadro com mais de {CFG.max_incertas} casas “?”.\n")
+    P(f"O pipeline descarta o quadro com mais de {CFG.max_incertas_mao} casas “?”.\n")
     P(_linha("foto", "“?” — cor", "“?” — forma", "vitória — cor", "vitória — forma"))
     P(_linha(*["---"] * 5))
     mc, mf = cp.resultados("cor", fotos=cp.mao), cp.resultados("forma", fotos=cp.mao)
@@ -237,7 +237,7 @@ def recomendacao(rc, rf, rk, rs, t3, mc, mf) -> str:
     c, f, k, s = _resumo(rc), _resumo(rf), _resumo(rk), _resumo(rs)
     vit = {m: sum(r[m][2] for r in t3.values()) for m in ("cor", "forma", "combinado")}
     falhas = [n for n, r in t3.items() if not r["combinado"][2]]
-    descarte = {m: sum(r["incertas"] > CFG.max_incertas for r in res.values()) for m, res in (("cor", mc), ("forma", mf))}
+    descarte = {m: sum(r["incertas"] > CFG.max_incertas_mao for r in res.values()) for m, res in (("cor", mc), ("forma", mf))}
     linhas = [
         "## 6. Recomendação\n",
         f"**Padrão: `identificacao = \"{CFG.identificacao}\"`.** O modo combinado roda o modo cor e, quando "
@@ -252,7 +252,7 @@ def recomendacao(rc, rf, rk, rs, t3, mc, mf) -> str:
     for n in falhas:
         r = t3[n]
         linhas.append(f"  - `{n}` falha em todos os modos: {r['forma'][1]} casas “?” no forma e "
-                      f"{r['cor'][1]} no cor (acima de {CFG.max_incertas} por quadro, o quadro é descartado).")
+                      f"{r['cor'][1]} no cor (acima de {CFG.max_incertas_mao} por quadro, o quadro é descartado).")
     linhas += [
         f"- Fotos com mão: descartadas em {descarte['forma']}/{len(mf)} (forma) e {descarte['cor']}/{len(mc)} (cor).",
         "- Custo: poucos milissegundos por quadro (seção 2), bem abaixo dos 100 ms do loop.\n",
