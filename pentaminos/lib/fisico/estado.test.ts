@@ -6,12 +6,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   EstadoFisico,
   estadoInicial,
+  invalidasPorMotivo,
   pecasValidas,
   reducerFisico,
   tabuleiroCompleto,
 } from "@/lib/fisico/estado";
 import { JogadaServidor, ordemDasJogadas } from "@/lib/fisico/api";
-import { alternarCasa, montarAtribuicao } from "@/lib/fisico/duvida";
+import {
+  alternarCasa,
+  duvidaAtual,
+  montarAtribuicao,
+  motivoSelecao,
+  outrasLetras,
+} from "@/lib/fisico/duvida";
 import { FonteSimulada, FonteWebSocket } from "@/lib/fisico/fontes";
 import { validarMensagem } from "@/lib/fisico/validar";
 import { DEMO_FISICO } from "@/lib/mocks/demo-fisico";
@@ -373,7 +380,7 @@ describe("ordemDasJogadas (GET /sessions/{id})", () => {
 describe("dúvida da visão e resposta do jogador", () => {
   const vazia = Array.from({ length: 6 }, () => Array(10).fill("."));
   const V: [number, number][] = [[0, 0], [1, 0], [2, 0], [2, 1], [2, 2]];
-  const duvida = { cells: V, candidatas: ["V", "Z"] };
+  const duvida = { id: "d1", cells: V, candidatas: ["V", "Z"] };
 
   it("board_state com duvidas vai para o estado e some no próximo sem duvidas", () => {
     const com = validarMensagem({ type: "board_state", session: "s", ts: 1, grid: vazia, duvidas: [duvida] });
@@ -386,7 +393,7 @@ describe("dúvida da visão e resposta do jogador", () => {
 
   it("duvidas malformadas são ignoradas com console.warn", () => {
     const aviso = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const ruim = { type: "board_state", session: "s", ts: 1, grid: vazia, duvidas: [{ cells: [[9, 9]], candidatas: ["V"] }] };
+    const ruim = { type: "board_state", session: "s", ts: 1, grid: vazia, duvidas: [{ id: "d1", cells: [[9, 9]], candidatas: ["V"] }] };
     expect(validarMensagem(ruim)).toBeNull();
     expect(aviso).toHaveBeenCalledOnce();
   });
@@ -399,10 +406,72 @@ describe("dúvida da visão e resposta do jogador", () => {
 
   it("só monta a resposta se a seleção formar a peça escolhida", () => {
     expect(montarAtribuicao(V, "V")).toEqual({ type: "assign_piece", cells: V, piece: "V" });
-    expect(montarAtribuicao(V, "Z")).toBe(
-      "As casas marcadas não formam a peça Z. Toque nas casas para ajustar.",
+    expect(montarAtribuicao(V, "Z")).toBe("As casas marcadas não formam a peça Z.");
+    expect(montarAtribuicao(V.slice(0, 4), "V")).toBe("Marque 5 casas (agora são 4).");
+    expect(motivoSelecao(V, "V")).toBeNull();
+  });
+
+  it("dúvida sem id é ignorada", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const semId = { type: "board_state", session: "s", ts: 1, grid: vazia, duvidas: [{ cells: V, candidatas: ["V"] }] };
+    expect(validarMensagem(semId)).toBeNull();
+  });
+
+  it("várias dúvidas aparecem uma de cada vez, com a contagem", () => {
+    const tres = ["d1", "d2", "d3"].map((id) => ({ ...duvida, id }) as typeof duvida);
+    expect(duvidaAtual([], null)).toBeNull();
+    const primeira = duvidaAtual(tres as never, null)!;
+    expect([primeira.duvida.id, primeira.contagem, primeira.proxima]).toEqual(["d1", "1 de 3", "d2"]);
+    const ultima = duvidaAtual(tres as never, "d3")!;
+    expect([ultima.contagem, ultima.proxima]).toEqual(["3 de 3", "d1"]);
+    // A dúvida mostrada sumiu: volta para a primeira.
+    expect(duvidaAtual(tres.slice(0, 2) as never, "d3")!.contagem).toBe("1 de 2");
+  });
+
+  it("Outra mostra as letras que faltam, menos as candidatas", () => {
+    expect(outrasLetras(["F", "I"], ["V", "Z"])).toEqual(["L", "N", "P", "T", "U", "W", "X", "Y"]);
+  });
+
+  it("piece_placed manual entra nos eventos como definida pelo jogador", () => {
+    const msg = validarMensagem({ type: "piece_placed", session: "s", ts: 1, piece: "V", cells: V, valid: true, manual: true });
+    const estado = reducerFisico(estadoInicial(false), { tipo: "mensagem", mensagem: msg! });
+    expect(estado.eventos[0].texto).toBe("V definida pelo jogador");
+    expect(estado.numeroJogadas).toBe(1);
+  });
+
+  it("no modo simulado a confirmação vale direto no estado", () => {
+    const grade = vazia.map((l, r) => l.map((x: string, c: number) => (V.some(([a, b]) => a === r && b === c) ? "Z" : x)));
+    const inicio = [
+      { type: "board_state", session: "s", ts: 1, grid: grade, duvidas: [duvida] },
+      { type: "piece_placed", session: "s", ts: 1, piece: "Z", cells: V, valid: false },
+    ].reduce(
+      (e, m) => reducerFisico(e, { tipo: "mensagem", mensagem: validarMensagem(m)! }),
+      estadoInicial(true),
     );
-    expect(typeof montarAtribuicao(V.slice(0, 4), "V")).toBe("string");
+    const atribuicao = montarAtribuicao(V, "V");
+    if (typeof atribuicao === "string") throw new Error(atribuicao);
+    const estado = reducerFisico(inicio, { tipo: "atribuir", atribuicao });
+    expect(estado.pecas.V?.valida).toBe(true);
+    expect(estado.pecas.Z).toBeUndefined();
+    expect(estado.duvidas).toEqual([]);
+    expect(estado.grade[2]).toBe("VVV.......");
+    expect(estado.eventos[0].texto).toBe("V definida pelo jogador");
+  });
+
+  it("peças inválidas agrupadas por motivo", () => {
+    const seis: [number, number][] = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [0, 5]];
+    const estado = [
+      { piece: "T", cells: seis },
+      { piece: "W", cells: seis.map(([r, c]) => [r + 2, c] as [number, number]) },
+      { piece: "X", cells: seis.slice(0, 4).map(([r, c]) => [r + 4, c] as [number, number]) },
+    ].reduce(
+      (e, p) => reducerFisico(e, { tipo: "mensagem", mensagem: { type: "piece_placed", session: "s", ts: 1, valid: false, ...p } as MensagemFisico }),
+      estadoInicial(false),
+    );
+    expect(invalidasPorMotivo(estado)).toEqual([
+      { motivo: "4 casas (esperado 5)", pecas: ["X"] },
+      { motivo: "6 casas (esperado 5)", pecas: ["T", "W"] },
+    ]);
   });
 
   it("FonteWebSocket envia o assign_piece com a sessão", () => {

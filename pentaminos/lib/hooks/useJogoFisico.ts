@@ -76,6 +76,11 @@ export function useJogoFisico(
   }, [sessaoId, fonteAtiva, intervaloSimuladoMs]);
 
   const enviar = useCallback((mensagem: MensagemNavegador) => {
+    // Sem visão no simulado: a resposta vale direto no estado.
+    if (typeof mensagem !== "string" && fonteRef.current?.tipo === "simulada") {
+      dispatch({ tipo: "atribuir", atribuicao: mensagem });
+      return;
+    }
     fonteRef.current?.enviar(mensagem);
   }, []);
 

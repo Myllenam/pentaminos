@@ -1,6 +1,7 @@
 import { motivoPecaInvalida } from "@/lib/fisico/forma";
 import { Cell, PentominoId } from "@/lib/types/pentomino";
 import {
+  AtribuirPeca,
   COLUNAS_FISICO,
   LINHAS_FISICO,
   Duvida,
@@ -49,6 +50,7 @@ export interface EstadoFisico {
 
 export type AcaoFisico =
   | { tipo: "mensagem"; mensagem: MensagemFisico }
+  | { tipo: "atribuir"; atribuicao: AtribuirPeca } // modo simulado: aplica direto
   | { tipo: "reiniciar"; detectarVitoriaLocal: boolean };
 
 export const MAX_EVENTOS = 50;
@@ -82,6 +84,23 @@ function chavePosicao(casas: Cell[]): string {
 
 function gradeEmTexto(grid: GradeVisao): string[] {
   return grid.map((linha) => linha.join(""));
+}
+
+// Peças inválidas agrupadas pelo motivo.
+export function invalidasPorMotivo(
+  estado: EstadoFisico,
+): { motivo: string; pecas: PentominoId[] }[] {
+  const grupos = new Map<string, PentominoId[]>();
+
+  for (const [letra, peca] of Object.entries(estado.pecas)) {
+    if (peca.valida) continue;
+    const motivo = peca.motivo ?? "peça inválida";
+    grupos.set(motivo, [...(grupos.get(motivo) ?? []), letra as PentominoId]);
+  }
+
+  return [...grupos]
+    .map(([motivo, pecas]) => ({ motivo, pecas: pecas.sort() }))
+    .sort((a, b) => a.motivo.localeCompare(b.motivo));
 }
 
 export function casasPreenchidas(grade: string[]): number {
@@ -155,9 +174,11 @@ function aplicarMensagem(
           ts: mensagem.ts,
           peca: piece,
           tipo: valid ? "colocada" : "invalida",
-          texto: valid
-            ? `${piece} colocada`
-            : `${piece} inválida: ${motivo}`,
+          texto: !valid
+            ? `${piece} inválida: ${motivo}`
+            : mensagem.manual
+              ? `${piece} definida pelo jogador`
+              : `${piece} colocada`,
         }),
       };
     }
@@ -228,6 +249,36 @@ function aplicarMensagem(
   }
 }
 
+// Sem visão: grava a peça e manda um piece_placed manual.
+function aplicarAtribuicao(
+  estado: EstadoFisico,
+  { cells, piece }: AtribuirPeca,
+): EstadoFisico {
+  const marcadas = new Set(cells.map(([r, c]) => `${r},${c}`));
+  const toca = (casas: Cell[]) => casas.some(([r, c]) => marcadas.has(`${r},${c}`));
+  const grade = estado.grade.map((linha) => [...linha]);
+  const pecas = { ...estado.pecas };
+
+  for (const [letra, peca] of Object.entries(pecas)) {
+    if (letra === piece || (!peca.valida && toca(peca.casas))) {
+      peca.casas.forEach(([r, c]) => (grade[r][c] = letra === piece ? "." : "?"));
+      delete pecas[letra as PentominoId];
+    }
+  }
+  cells.forEach(([r, c]) => (grade[r][c] = piece));
+
+  return aplicarMensagem(
+    {
+      ...estado,
+      grade: grade.map((linha) => linha.join("")),
+      pecas,
+      duvidas: estado.duvidas.filter((d) => !toca(d.cells)),
+    },
+    { type: "piece_placed", session: "local", ts: Math.floor(Date.now() / 1000),
+      piece, cells, valid: true, manual: true },
+  );
+}
+
 export function reducerFisico(
   estado: EstadoFisico,
   acao: AcaoFisico,
@@ -236,7 +287,10 @@ export function reducerFisico(
     return estadoInicial(acao.detectarVitoriaLocal);
   }
 
-  const proximo = aplicarMensagem(estado, acao.mensagem);
+  const proximo =
+    acao.tipo === "atribuir"
+      ? aplicarAtribuicao(estado, acao.atribuicao)
+      : aplicarMensagem(estado, acao.mensagem);
 
   if (
     !proximo.vitoria &&

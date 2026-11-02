@@ -75,6 +75,7 @@ function ehDuvidas(valor: unknown): boolean {
     valor.every(
       (d) =>
         ehRegistro(d) &&
+        typeof d.id === "string" &&
         Array.isArray(d.cells) &&
         d.cells.length > 0 &&
         d.cells.every(ehCasa) &&
@@ -122,6 +123,9 @@ function motivoInvalida(dado: Registro): string | null {
         !Number.isInteger(dado.sequence)
       ) {
         return "sequence deve ser inteiro";
+      }
+      if (dado.manual !== undefined && typeof dado.manual !== "boolean") {
+        return "manual deve ser booleano";
       }
       return typeof dado.valid === "boolean"
         ? null

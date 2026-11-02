@@ -20,6 +20,7 @@ interface MensagemVisao {
 
 // Peça que a visão não reconheceu; a tela pergunta ao jogador.
 export interface Duvida {
+  id: string; // "d1", "d2"...
   cells: Cell[];
   candidatas: PentominoId[];
 }
@@ -35,6 +36,7 @@ export interface MensagemPeca extends MensagemVisao {
   piece: PentominoId;
   cells: Cell[];
   valid: boolean;
+  manual?: boolean; // peça nomeada pelo jogador
   sequence?: number; // acrescentado pelo ws.py depois de gravar a jogada
 }
 
