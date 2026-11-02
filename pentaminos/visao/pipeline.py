@@ -42,7 +42,7 @@ class Pipeline:
         return self._estado
 
     def atribuir(self, casas, letra) -> str | None:
-        """Peça nomeada pelo jogador; devolve o motivo se for recusada."""
+        """Aplica a peça nomeada; devolve o motivo se recusar."""
         return self.correcoes.atribuir(casas, letra, self.cfg.espelhar)
 
     def processar(self, frame: np.ndarray, ts: int | None = None,
@@ -102,7 +102,7 @@ class Pipeline:
         return msg
 
     def _lembrar(self, grade: list[list[str]]) -> list[list[str]]:
-        """Casa "?" herda a letra publicada se as vizinhas não mudaram."""
+        """Casa "?" herda a letra publicada."""
         antes = self._estab.publicado
         if antes is None:
             return grade

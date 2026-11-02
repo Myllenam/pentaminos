@@ -13,7 +13,7 @@ def mudanca_media(a: np.ndarray, b: np.ndarray) -> float:
 
 
 class Votador:
-    """Rótulo de cada casa = maioria nos últimos `janela` quadros aceitos."""
+    """Cada casa recebe a maioria dos últimos quadros."""
 
     def __init__(self, janela: int = 7):
         if janela < 1:

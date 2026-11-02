@@ -5,7 +5,7 @@ from collections import Counter
 
 
 class Resumo:
-    """Conta quadros e devolve uma linha de log a cada `intervalo` segundos."""
+    """Devolve uma linha de log a cada `intervalo` segundos."""
 
     def __init__(self, intervalo: float = 2.0):
         self.intervalo = intervalo
@@ -31,7 +31,7 @@ class Resumo:
 
 
 class Instabilidade:
-    """Status da câmera conforme os quadros são descartados seguidamente."""
+    """Status da câmera conforme os descartes seguidos."""
 
     def __init__(self, limite_s: float = 3.0):
         self.limite_s = limite_s

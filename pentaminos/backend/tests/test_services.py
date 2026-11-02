@@ -43,7 +43,7 @@ def test_registra_todas_as_mensagens_reais_do_demo(db, mensagens_demo):
     assert colocadas == 13  # 12 peças + a recolocação da I
     assert len(sessao.jogadas) == len(eventos) == 14
     assert [j.sequencia for j in sessao.jogadas] == list(range(1, 15))
-    # Só conta peça válida em posição nova: a I recolocada no mesmo lugar não conta.
+    # Só conta peça válida em posição nova.
     assert sessao.numero_jogadas == 12
 
 

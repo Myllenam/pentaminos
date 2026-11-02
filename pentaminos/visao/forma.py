@@ -243,7 +243,7 @@ def classificar_forma(cores: np.ndarray, paleta: Paleta, cfg: Config,
 
 def classificar_combinado(cores: np.ndarray, paleta: Paleta, cfg: Config,
                           cores_vazio: np.ndarray | None = None) -> list[list[str]]:
-    """Decide por peça: forma válida vence; senão, peça válida da cor."""
+    """Escolhe por peça: forma válida; senão, cor."""
     por_forma = classificar_forma(cores, paleta, cfg, cores_vazio)
     por_cor, _ = classificar(cores, paleta, cfg.limiar_incerto, cfg.peso_l)
     ef = validar_estado(por_forma, cfg.pecas, cfg.espelhar)

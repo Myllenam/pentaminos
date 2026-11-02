@@ -193,14 +193,14 @@ PAPEL = hex_de_lab(PALETA_REAL.cores["."])
 
 
 def misturar(cor_hex: str, fracao: float) -> str:
-    """Cor da peça clareada pelo papel (reflexo): fracao 0 = peça, 1 = papel."""
+    """Cor da peça clareada pelo reflexo do papel."""
     a = [int(cor_hex[i:i + 2], 16) for i in (1, 3, 5)]
     b = [int(PAPEL[i:i + 2], 16) for i in (1, 3, 5)]
     return "#" + "".join(f"{round(x + (y - x) * fracao):02x}" for x, y in zip(a, b))
 
 
 def topo_real(grade, cores_casa=None, seed=0):
-    """Vista de topo com as cores reais; cores_casa troca a cor de casas avulsas."""
+    """Vista de topo com as cores reais."""
     img = renderizar(grade, cores=CORES_REAIS, fundo=PAPEL)
     for (r, c), cor in (cores_casa or {}).items():
         img[r * 100:(r + 1) * 100, c * 100:(c + 1) * 100] = [int(cor[i:i + 2], 16) for i in (5, 3, 1)]

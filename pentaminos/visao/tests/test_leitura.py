@@ -88,7 +88,7 @@ class TestMonitor(unittest.TestCase):
 
 
 def simular(grades, janela, estaveis=3):
-    """Votação + estabilização + validação, sem imagem: devolve as peças colocadas."""
+    """Votação e estabilização sem imagem."""
     votos, estab, anterior, colocadas = Votador(janela), Estabilizador(estaveis), None, []
     for g in grades:
         novo = estab.atualizar(votos.votar(g, estab.publicado))
@@ -100,7 +100,7 @@ def simular(grades, janela, estaveis=3):
 
 
 def com_piscadas(sol, quadros=300, seed=0):
-    """Tabuleiro cheio; de vez em quando uma casa vira outra letra por 1 a 3 quadros."""
+    """Tabuleiro cheio com casas que piscam por 1 a 3 quadros."""
     rng = np.random.default_rng(seed)
     grades, fim, casa, letra = [], -1, None, None
     for i in range(quadros):

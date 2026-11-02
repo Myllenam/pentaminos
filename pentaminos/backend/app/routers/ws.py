@@ -11,7 +11,7 @@ router = APIRouter(tags=['tempo real'])
 _salas: dict[str, set[WebSocket]] = defaultdict(set)
 
 def _erro_atribuicao(msg: dict) -> str | None:
-    """Confere o assign_piece do navegador: letra e 5 casas do tabuleiro."""
+    """Confere a letra e as 5 casas do assign_piece."""
     casas = msg.get('cells')
     if msg.get('piece') not in LETRAS:
         return 'Peça inválida.'

@@ -188,7 +188,7 @@ def registrar_evento(db: Session, mensagem: Mapping[str, Any]) -> Jogada:
 
 
 def _mudou_de_lugar(db: Session, sessao_id: str, peca: str, casas: list[list[int]]) -> bool:
-    """Peça válida em posição diferente da última posição válida dela."""
+    """Peça válida em posição nova."""
     anterior = db.scalar(
         select(Jogada.casas)
         .where(Jogada.sessao_id == sessao_id, Jogada.peca == peca,

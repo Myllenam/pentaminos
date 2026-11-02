@@ -106,7 +106,7 @@ function TelaFisico({
   const [vitoriaFechada, setVitoriaFechada] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  // Ajuste do jogador na dúvida atual (vale só para a dúvida da chave).
+  // Ajuste do jogador na dúvida atual.
   const [ajuste, setAjuste] = useState<{
     chave: string;
     casas: Cell[];

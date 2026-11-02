@@ -15,7 +15,7 @@ Celula = tuple[int, int]
 
 
 def candidatas(casas, faltam: list[str], cores: np.ndarray, paleta: Paleta, cfg: Config) -> list[str]:
-    """Letras que faltam e cabem nas casas; senão, as 3 mais próximas pela cor."""
+    """Letras que faltam e cabem; senão, as 3 mais próximas pela cor."""
     prazo = time.perf_counter() + cfg.tempo_max_forma_ms / 1000
     cabem = {l for d in divisoes(list(casas), cfg.espelhar, cfg.max_divisoes, prazo) for l, _ in d}
     if cabem & set(faltam):
@@ -41,7 +41,7 @@ class Duvidas:
 
 
 class Correcoes:
-    """Peças que o jogador nomeou, valendo enquanto as casas seguirem ocupadas."""
+    """Peças nomeadas pelo jogador, até as casas ficarem vazias."""
 
     def __init__(self, quadros_vazios: int):
         self.quadros_vazios = quadros_vazios
@@ -61,7 +61,7 @@ class Correcoes:
         return None
 
     def aplicar(self, grade: list[list[str]]) -> tuple[list[list[str]], list[str]]:
-        """Grade com as correções e as letras cujas correções foram descartadas."""
+        """Grade corrigida e letras com correção descartada."""
         nova = [linha[:] for linha in grade]
         descartadas = []
         for letra, casas in list(self.pecas.items()):
