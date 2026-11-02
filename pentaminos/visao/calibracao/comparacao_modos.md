@@ -38,7 +38,7 @@ A varredura usa as mesmas fotos da comparação; o 3º tabuleiro (seção 5) é 
 | combinado (decide por peça) | 100.0% | 100.0% | 3/3 | 0 |
 | forma sem `vazio.json` (casa vazia = “.” da paleta) | 100.0% | 100.0% | 3/3 | 0 |
 
-Tempo médio por foto só da etapa de rótulos (sem retificar): cor 0.2 ms, forma 1.7 ms, combinado 1.8 ms. O loop ao vivo roda a 10 quadros/s (100 ms por quadro).
+Tempo médio por foto só da etapa de rótulos (sem retificar): cor 0.2 ms, forma 2.0 ms, combinado 2.2 ms. O loop ao vivo roda a 10 quadros/s (100 ms por quadro).
 
 ## 3. Por número de peças no tabuleiro
 
@@ -61,14 +61,14 @@ Peças certas = a letra do gabarito ocupa exatamente as mesmas casas na previsã
 
 ## 4. Fotos com mão (devem ser descartadas)
 
-O pipeline descarta o quadro com mais de 10 casas “?”.
+O pipeline descarta o quadro com mais de 10 casas “?” na leitura por cor, em qualquer modo (a coluna “cor”).
 
 | foto | “?” — cor | “?” — forma | vitória — cor | vitória — forma |
 | --- | --- | --- | --- | --- |
-| `tabuleiro_vazio_mao` | 30 | 26 | False | False |
-| `tabuleiro_vazio_mao_em_cima` | 24 | 22 | False | False |
-| `tabuleiro_1_mao` | 29 | 29 | False | False |
-| `tabuleiro_2_completo_mao` | 21 | 18 | False | False |
+| `tabuleiro_vazio_mao` | 30 | 31 | False | False |
+| `tabuleiro_vazio_mao_em_cima` | 24 | 31 | False | False |
+| `tabuleiro_1_mao` | 29 | 35 | False | False |
+| `tabuleiro_2_completo_mao` | 21 | 36 | False | False |
 
 ## 5. 3º tabuleiro (fora da calibração)
 
@@ -77,7 +77,7 @@ Estas fotos **não têm gabarito**: o `calibrar_fotos.py` só monta gabarito par
 | foto | peças válidas — cor | peças válidas — forma | peças válidas — combinado | “?” — cor | “?” — forma | vitória — cor | vitória — forma | vitória — combinado |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `WhatsApp Image 2026-10-29 at 13.51.31 (1)` | 4/12 | 12/12 | 12/12 | 17 | 0 | False | True | True |
-| `WhatsApp Image 2026-10-29 at 13.51.32 (1)` | 3/12 | 3/12 | 3/12 | 4 | 4 | False | False | False |
+| `WhatsApp Image 2026-10-29 at 13.51.32 (1)` | 3/12 | 3/12 | 3/12 | 4 | 25 | False | False | False |
 | `WhatsApp Image 2026-10-29 at 13.51.33 (1)` | 10/12 | 12/12 | 12/12 | 0 | 0 | False | True | True |
 
 `WhatsApp Image 2026-10-29 at 13.51.31 (1)` — cor | forma:
@@ -94,11 +94,11 @@ IN????F???   INYYYYFUUU
 `WhatsApp Image 2026-10-29 at 13.51.32 (1)` — cor | forma:
 
 ```
-ZZZZZZZVVV   ZZZZZZZVVV
-ZZ??Z?VVZV   ZZ??Z?VVZV
-ZTZZZZZZPP   ZTZZZZZZPP
-ZZNZZZZFPP   ZZNZZZZFPP
-INWWYZFUPU   INWWYZFUPU
+ZZZZZZZVVV   ?????Z?VVV
+ZZ??Z?VVZV   ???????V?V
+ZTZZZZZZPP   ?T?????ZPP
+ZZNZZZZFPP   ZZN??Z?FPP
+INWWYZFUPU   INWWY?FUPU
 INYYYY?UUU   INYYYY?UUU
 ```
 
@@ -119,8 +119,8 @@ INYYYYFUUU   INYYYYFUUU
 
 - Fotos com gabarito: casas certas cor 96.0%, forma 100.0%, combinado 100.0%; peças certas cor 73.2%, forma 100.0%, combinado 100.0%; vitória nos tabuleiros completos cor 0/3, forma 3/3, combinado 3/3. A diferença cresce com o número de peças (seção 3).
 - 3º tabuleiro, fora da calibração: vitória em 2/3 fotos no combinado, 2/3 no forma e 0/3 no cor.
-  - `WhatsApp Image 2026-10-29 at 13.51.32 (1)` falha em todos os modos: 3/12 peças válidas e 4 casas “?” no combinado (limite 10); o quadro é publicado, e as peças inválidas viram perguntas ao jogador depois de 3 s.
-- Fotos com mão: descartadas em 4/4 (forma) e 4/4 (cor).
+  - `WhatsApp Image 2026-10-29 at 13.51.32 (1)` falha em todos os modos: 3/12 peças válidas e 25 casas “?” no combinado; para o descarte contam as 4 da leitura por cor (limite 10), então o quadro é publicado, e as peças inválidas viram perguntas ao jogador depois de 2 s.
+- Fotos com mão: descartadas em 4/4.
 - Custo: poucos milissegundos por quadro (seção 2), bem abaixo dos 100 ms do loop.
 
 **Limites desta medição:**
