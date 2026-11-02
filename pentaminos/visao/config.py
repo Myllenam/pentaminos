@@ -26,6 +26,9 @@ class Config:
     margem_ocupada: float = 4.0      # faixa do limiar_ocupada que vira "?"
     limiar_mesma_peca: float = 20.0  # vizinhas abaixo disto ficam no mesmo grupo
     max_divisoes: int = 200          # divisões examinadas por grupo grande
+    limiar_ocupada_fraca: float = 10.0  # casa vazia que pode completar uma peça (reflexo)
+    limiar_croma_fraca: float = 6.0  # croma acima do papel que também conta como fraca
+    tempo_max_forma_ms: float = 40.0 # prazo da busca por forma em cada quadro
     # --- estabilização / oclusão ---
     quadros_estaveis: int = 3        # quadros consecutivos iguais para publicar
     max_incertas: int = 3            # "?" tolerados no relatório de calibração

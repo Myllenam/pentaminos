@@ -1,9 +1,11 @@
+import time
 import unittest
 
+import cv2
 import numpy as np
 
 from config import Config
-from forma import classificar_combinado, classificar_forma, divisoes
+from forma import classificar_combinado, classificar_forma, distancia, divisoes
 from gerar_solucoes import solucoes
 from localizacao import calcular_homografia
 from pentaminos import LETRAS, orientacoes
@@ -175,6 +177,123 @@ class TestPipelineEModoCor(unittest.TestCase):
         self.assertTrue(pipe.estado_atual.vitoria)
         colocadas = sorted(m["piece"] for m in msgs if m["type"] == "piece_placed")
         self.assertEqual(colocadas, sorted(LETRAS))
+
+
+PALETA_REAL = Paleta.carregar("calibracao/paleta.json")
+
+
+def hex_de_lab(lab) -> str:
+    bgr = cv2.cvtColor(np.array([[lab]], np.float32), cv2.COLOR_LAB2BGR)[0, 0]
+    b, g, r = (int(round(float(np.clip(x, 0, 1)) * 255)) for x in bgr)
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+CORES_REAIS = {k: hex_de_lab(v) for k, v in PALETA_REAL.cores.items() if k != "."}
+PAPEL = hex_de_lab(PALETA_REAL.cores["."])
+
+
+def misturar(cor_hex: str, fracao: float) -> str:
+    """Cor da peça clareada pelo papel (reflexo): fracao 0 = peça, 1 = papel."""
+    a = [int(cor_hex[i:i + 2], 16) for i in (1, 3, 5)]
+    b = [int(PAPEL[i:i + 2], 16) for i in (1, 3, 5)]
+    return "#" + "".join(f"{round(x + (y - x) * fracao):02x}" for x, y in zip(a, b))
+
+
+def topo_real(grade, cores_casa=None, seed=0):
+    """Vista de topo com as cores reais; cores_casa troca a cor de casas avulsas."""
+    img = renderizar(grade, cores=CORES_REAIS, fundo=PAPEL)
+    for (r, c), cor in (cores_casa or {}).items():
+        img[r * 100:(r + 1) * 100, c * 100:(c + 1) * 100] = [int(cor[i:i + 2], 16) for i in (5, 3, 1)]
+    return com_ruido(img, sigma=3, rng=np.random.default_rng(seed))
+
+
+def ler_real(grade, cores_casa=None, cfg=Config(), seed=0):
+    cores = cores_das_celulas(topo_real(grade, cores_casa, seed), 6, 10, cfg.fracao_central)
+    return classificar_forma(cores, PALETA_REAL, cfg), classificar_combinado(cores, PALETA_REAL, cfg), cores
+
+
+def grade_de(texto: str):
+    return [list(l) for l in texto.split("/")]
+
+
+class TestCasosReais(unittest.TestCase):
+    def test_l_da_borda_com_casas_de_cor_diferente(self):
+        certa = grade_de("ZZIIIIIFLL/VZYYYYFFFL/VZZYUUUWFL/VVVXUTUWWL/PPXXXTNNWW/PPPXTTTNNN")
+        self.assertTrue(validar_estado(certa).vitoria)
+        bordas = {(0, 8): CORES_REAIS["Z"], (3, 9): CORES_REAIS["Z"]}
+        forma, combinado, cores = ler_real(certa, bordas)
+        cor, _ = classificar(cores, PALETA_REAL, CFG.limiar_incerto, CFG.peso_l)
+        self.assertEqual((cor[0][8], cor[3][9]), ("Z", "Z"))
+        self.assertFalse(validar_estado(cor).vitoria)
+        for g in (forma, combinado):
+            self.assertEqual(g, certa)
+            self.assertTrue(validar_estado(g).vitoria)
+
+    def _i_com_reflexo(self):
+        g = colocar_peca(grade_vazia(), "I", ((0, 0), (0, 1), (0, 2), (0, 3), (0, 4)), 0, 0)
+        g = colocar_peca(g, "T", ((0, 0), (0, 1), (0, 2), (1, 1), (2, 1)), 1, 0)
+        g = colocar_peca(g, "P", ((0, 0), (0, 1), (1, 0), (1, 1), (2, 0)), 1, 3)
+        return g, {(0, 4): misturar(CORES_REAIS["I"], 0.6)}
+
+    def test_i_na_linha_0_com_reflexo_encostado_em_t_e_p(self):
+        g, reflexo = self._i_com_reflexo()
+        forma, combinado, cores = ler_real(g, reflexo)
+        d = distancia(cores[0, 4], PALETA_REAL.cores["."], CFG.peso_l)
+        self.assertLess(d, CFG.limiar_ocupada - CFG.margem_ocupada)   # a ponta parece vazia
+        for resultado in (forma, combinado):
+            self.assertEqual(resultado, g)
+            self.assertTrue(validar_estado(resultado).pecas["I"].valida)
+
+    def test_tabuleiro_cheio_desde_o_primeiro_quadro_reconhece_o_i(self):
+        sol = next(solucoes())
+        i = casas_de(sol, "I")
+        reflexo = {i[-1]: misturar(CORES_REAIS["I"], 0.6)}
+        H = calcular_homografia(CANTOS_PADRAO, CFG.largura_px, CFG.altura_px)
+        pipe = Pipeline(Config(), H, PALETA_REAL)
+        rng = np.random.default_rng(3)
+        msgs = []
+        for _ in range(Config().quadros_estaveis):
+            topo = renderizar(sol, cores=CORES_REAIS, fundo=PAPEL)
+            r, c = i[-1]
+            topo[r * 100:(r + 1) * 100, c * 100:(c + 1) * 100] = [int(reflexo[(r, c)][k:k + 2], 16) for k in (5, 3, 1)]
+            msgs += pipe.processar(com_ruido(projetar(topo), sigma=3, rng=rng)).mensagens
+        primeiro = msgs[0]
+        self.assertEqual(primeiro["type"], "board_state")
+        self.assertEqual(primeiro["grid"], sol)
+        self.assertTrue(pipe.estado_atual.vitoria)
+
+    def test_peca_partida_em_3_e_2_casas_vira_uma_so(self):
+        l = ((0, 0), (1, 0), (2, 0), (3, 0), (3, 1))
+        g = colocar_peca(grade_vazia(), "L", l, 1, 4)
+        lab = PALETA_REAL.cores["L"] + np.array([45, 0, 0], np.float32)
+        clara = hex_de_lab(lab)
+        partes = {(4, 4): clara, (4, 5): clara}
+        forma, combinado, cores = ler_real(g, partes)
+        self.assertGreater(distancia(cores[3, 4], cores[4, 4], CFG.peso_l), CFG.limiar_mesma_peca)
+        self.assertEqual(forma, g)
+        self.assertEqual(combinado, g)
+
+    def test_grupos_de_4_e_7_com_a_paleta_real_continuam_invalidos(self):
+        g = grade_vazia()
+        for r, c in ((0, 0), (0, 1), (1, 0), (1, 1)):
+            g[r][c] = "L"
+        for r, c in ((3, 4), (3, 5), (3, 6), (3, 7), (4, 4), (4, 5), (4, 6)):
+            g[r][c] = "P"
+        for resultado in ler_real(g)[:2]:
+            estado = validar_estado(resultado)
+            self.assertEqual(estado.pecas["L"].motivo, "4 casas (esperado 5)")
+            self.assertEqual(estado.pecas["P"].motivo, "7 casas (esperado 5)")
+
+    def test_tabuleiro_inteiro_num_grupo_so_respeita_o_prazo(self):
+        sol = next(solucoes())
+        uma_cor = {k: CORES_REAIS["V"] for k in CORES_REAIS}
+        img = com_ruido(renderizar(sol, cores=uma_cor, fundo=PAPEL), sigma=3, rng=np.random.default_rng(9))
+        cores = cores_das_celulas(img, 6, 10, CFG.fracao_central)
+        cfg = Config(tempo_max_forma_ms=40)
+        inicio = time.perf_counter()
+        classificar_forma(cores, PALETA_REAL, cfg)
+        gasto = (time.perf_counter() - inicio) * 1000
+        self.assertLess(gasto, cfg.tempo_max_forma_ms + 60)
 
 
 if __name__ == "__main__":
