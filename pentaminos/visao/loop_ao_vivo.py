@@ -13,6 +13,7 @@ from gerar_solucoes import solucoes
 from localizacao import calcular_homografia
 from visao import Paleta
 from forma import carregar_vazio
+from monitor import Instabilidade, Resumo
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 LOG=logging.getLogger('pentaminos.vision')
@@ -55,6 +56,7 @@ async def executar(args):
     pipe=Pipeline(cfg,H,paleta,sessao=args.sessao,cores_vazio=vazio)
     ws_url=args.ws_url.rstrip('/')+f'/ws/sessions/{args.sessao}?role=vision'
     intervalo=1/max(1,args.fps or cfg.fps_alvo); anterior_status=None; jogadas=0; inicio=time.monotonic(); pausado=False
+    resumo=Resumo(2.0); instabilidade=Instabilidade(3.0)
     try:
         async with websockets.connect(ws_url, ping_interval=20) as ws:
             async def enviar(msg): await ws.send(json.dumps(msg,ensure_ascii=False))
@@ -67,16 +69,19 @@ async def executar(args):
                 try:
                     controle=json.loads(await asyncio.wait_for(ws.recv(), timeout=0.001))
                     if controle.get('type') == 'stop':
-                        LOG.info('Loop encerrado pelo navegador')
+                        LOG.info('Loop encerrado pelo navegador'); pipe.correcoes.limpar()
                         break
                     if controle.get('type') == 'pause': pausado=True; LOG.info('Loop pausado pelo navegador')
                     elif controle.get('type') == 'resume': pausado=False; LOG.info('Loop retomado pelo navegador')
                     elif controle.get('type') == 'restart':
                         LOG.info('Reinício solicitado; encerre e inicie uma nova sessão para reiniciar o pipeline')
+                    elif controle.get('type') == 'assign_piece':
+                        erro=pipe.atribuir(controle.get('cells'),controle.get('piece'))
+                        LOG.info('correção: %s em %s%s',controle.get('piece'),controle.get('cells'),f' (recusada: {erro})' if erro else '')
                 except asyncio.TimeoutError: pass
                 if pausado:
                     await asyncio.sleep(0.1); continue
-                ok,frame=captura.read()
+                ok,frame=await asyncio.to_thread(captura.read)
                 if not ok:
                     if anterior_status!='perdida':
                         await enviar({'type':'camera_status','status':'perdida','session':args.sessao,'ts':int(time.time())})
@@ -84,14 +89,20 @@ async def executar(args):
                     await asyncio.sleep(0.5); continue
                 if anterior_status == 'perdida':
                     await enviar({'type':'camera_status','status':'conectada','session':args.sessao,'ts':int(time.time())})
-                if anterior_status!='tabuleiro_detectado':
+                if anterior_status not in ('tabuleiro_detectado','leitura_instavel'):
                     await enviar({'type':'camera_status','status':'tabuleiro_detectado','session':args.sessao,'ts':int(time.time())}); anterior_status='tabuleiro_detectado'
-                resultado=pipe.processar(frame)
-                if resultado.descartado:
-                    LOG.info('Quadro descartado: %s',resultado.motivo)
+                resultado=await asyncio.to_thread(pipe.processar,frame)
+                agora=time.monotonic()
+                linha=resumo.registrar(resultado.descartado,resultado.motivo,bool(resultado.mensagens),agora)
+                if linha: LOG.info(linha)
+                for aviso in resultado.avisos: LOG.info(aviso)
+                mudanca=instabilidade.atualizar(resultado.descartado,resultado.motivo,agora)
+                if mudanca:
+                    LOG.info('Câmera: %s %s',mudanca['status'],mudanca.get('detail',''))
+                    await enviar({'type':'camera_status',**mudanca,'session':args.sessao,'ts':int(time.time())}); anterior_status=mudanca['status']
                 for msg in resultado.mensagens:
-                    LOG.info('Evento: %s',msg.get('type'))
                     if msg.get('type') == 'board_state': grade_atual=msg.get('grid')
+                    else: LOG.info('Evento: %s %s%s',msg.get('type'),msg.get('piece'),'' if msg.get('valid') else ' (inválida)')
                     await enviar(msg)
                     if msg.get('type') in ('piece_placed','piece_removed') and msg.get('type')=='piece_placed': jogadas+=1
                 if resultado.estado and resultado.estado.vitoria:

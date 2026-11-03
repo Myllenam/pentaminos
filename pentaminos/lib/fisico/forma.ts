@@ -47,6 +47,17 @@ function conexa(casas: Cell[]): boolean {
   return visitadas.size === casas.length;
 }
 
+// Mesma regra de forma_corresponde (8 orientações).
+export function formaCorresponde(peca: PentominoId, casas: Cell[]): boolean {
+  const forma = PENTOMINOES.find((p) => p.id === peca);
+  return (
+    casas.length === 5 &&
+    conexa(casas) &&
+    !!forma &&
+    orientacoes(forma.cells).has(normalizar(casas))
+  );
+}
+
 export function motivoPecaInvalida(
   peca: PentominoId,
   casas: Cell[],

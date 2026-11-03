@@ -42,7 +42,7 @@ class TestPipeline(unittest.TestCase):
                 r = pipe.processar(quadro(estado, rng, mao=pos))
                 descartados += r.descartado
                 mensagens += r.mensagens
-            for _ in range(4):
+            for _ in range(7):
                 r = pipe.processar(quadro(estado, rng))
                 mensagens += r.mensagens
         colocadas = [m for m in mensagens if m["type"] == "piece_placed"]
@@ -53,12 +53,12 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(mensagens[0]["type"], "board_state")
         self.assertEqual(mensagens[0]["session"], "teste")
 
-    def test_mao_sozinha_nao_publica_nada(self):
+    def test_mao_sozinha_nao_publica_peca(self):
         rng = np.random.default_rng(2)
         pipe = Pipeline(CFG, H, PALETA)
         for _ in range(10):
             r = pipe.processar(quadro(grade_vazia(), rng, mao=(500, 250)))
-            self.assertEqual(r.mensagens, [])
+            self.assertEqual([m for m in r.mensagens if m["type"] != "board_state"], [])
 
     def test_remover_peca_gera_evento(self):
         rng = np.random.default_rng(3)
@@ -67,7 +67,7 @@ class TestPipeline(unittest.TestCase):
         pipe = Pipeline(CFG, H, PALETA)
         msgs = []
         for estado in (estados[2], estados[1]):          
-            for _ in range(4):
+            for _ in range(7):
                 msgs += pipe.processar(quadro(estado, rng)).mensagens
         tipos = [m["type"] for m in msgs if m["type"] != "board_state"]
         self.assertEqual(tipos, ["piece_placed", "piece_placed", "piece_removed"])

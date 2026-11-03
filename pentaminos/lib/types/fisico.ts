@@ -18,9 +18,17 @@ interface MensagemVisao {
   ts: number; // segundos (epoch)
 }
 
+// Peça que a visão não reconheceu; a tela pergunta ao jogador.
+export interface Duvida {
+  id: string; // "d1", "d2"...
+  cells: Cell[];
+  candidatas: PentominoId[];
+}
+
 export interface MensagemBoardState extends MensagemVisao {
   type: "board_state";
   grid: GradeVisao;
+  duvidas?: Duvida[];
 }
 
 export interface MensagemPeca extends MensagemVisao {
@@ -28,6 +36,7 @@ export interface MensagemPeca extends MensagemVisao {
   piece: PentominoId;
   cells: Cell[];
   valid: boolean;
+  manual?: boolean; // peça nomeada pelo jogador
   sequence?: number; // acrescentado pelo ws.py depois de gravar a jogada
 }
 
@@ -35,11 +44,13 @@ export type StatusCamera =
   | "sintetica"
   | "conectada"
   | "perdida"
-  | "tabuleiro_detectado";
+  | "tabuleiro_detectado"
+  | "leitura_instavel"; // quadros descartados há mais de ~3 s
 
 export interface MensagemCameraStatus extends MensagemVisao {
   type: "camera_status";
   status: StatusCamera;
+  detail?: string; // motivo, em leitura_instavel
 }
 
 export interface MensagemGameWon extends MensagemVisao {
@@ -76,6 +87,15 @@ export type MensagemFisico =
 
 // Comandos do navegador; o ws.py repassa aos outros clientes da sala.
 export type ComandoFisico = "pause" | "resume" | "restart" | "stop";
+
+// Peça nomeada pelo jogador numa dúvida.
+export interface AtribuirPeca {
+  type: "assign_piece";
+  cells: Cell[];
+  piece: PentominoId;
+}
+
+export type MensagemNavegador = ComandoFisico | AtribuirPeca;
 
 export type StatusConexao =
   | "conectando"

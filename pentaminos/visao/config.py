@@ -20,15 +20,24 @@ class Config:
     # --- classificação ---
     peso_l: float = 0.5              # peso da luminosidade (L) na distância Lab; a, b valem 1
     limiar_incerto: float = 16.0     # distância Lab ponderada máx. até a cor mais próxima
-    identificacao: str = "cor"       # "cor" ou "forma"
+    identificacao: str = "combinado" # "cor", "forma" ou "combinado" (cor; se falhar, forma)
     # --- modo "forma" ---
     limiar_ocupada: float = 26.0     # vazia × ocupada (distância à casa vazia)
     margem_ocupada: float = 4.0      # faixa do limiar_ocupada que vira "?"
     limiar_mesma_peca: float = 20.0  # vizinhas abaixo disto ficam no mesmo grupo
     max_divisoes: int = 200          # divisões examinadas por grupo grande
+    limiar_ocupada_fraca: float = 10.0  # casa vazia que pode completar uma peça (reflexo)
+    limiar_croma_fraca: float = 6.0  # croma acima do papel que também conta como fraca
+    tempo_max_forma_ms: float = 40.0 # prazo da busca por forma em cada quadro
+    segundos_duvida: float = 2.0     # dúvida estável há mais disto vira pergunta na tela
+    margem_encaixe: float = 30.0     # tabuleiro cheio: folga mínima do melhor encaixe sobre o 2º
+    limiar_fora_encaixe: float = 30.0  # casa longe da cor da letra do encaixe
+    max_fora_encaixe: int = 8        # mais casas longe que isto (mão, peça fora): encaixe recusado
     # --- estabilização / oclusão ---
     quadros_estaveis: int = 3        # quadros consecutivos iguais para publicar
-    max_incertas: int = 3            # casas incertas toleradas num quadro (mão/sombra passam disso)
+    janela_votos: int = 7            # cada casa = maioria nos últimos N quadros aceitos
+    max_incertas: int = 3            # "?" tolerados no relatório de calibração
+    max_incertas_mao: int = 10       # acima disto o quadro é mão em cima: descartado
     limiar_mudanca: float = 8.0      # (AJUSTAR) diferença média entre quadros (0-255)
     # --- captura ---
     fonte_camera: str = "0"          # índice da webcam ou URL do app de celular
@@ -39,8 +48,8 @@ class Config:
     arquivo_vazio: str = "calibracao/vazio.json"   # cor de cada casa vazia
 
     def __post_init__(self):
-        if self.identificacao not in ("cor", "forma"):
-            raise ValueError(f"identificacao deve ser 'cor' ou 'forma', não {self.identificacao!r}")
+        if self.identificacao not in ("cor", "forma", "combinado"):
+            raise ValueError(f"identificacao inválida: {self.identificacao!r}")
 
     @property
     def largura_px(self) -> int:

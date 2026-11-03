@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections import Counter, deque
+
 import cv2
 import numpy as np
 
@@ -8,6 +10,29 @@ def mudanca_media(a: np.ndarray, b: np.ndarray) -> float:
     ga = cv2.cvtColor(a, cv2.COLOR_BGR2GRAY)
     gb = cv2.cvtColor(b, cv2.COLOR_BGR2GRAY)
     return float(np.mean(cv2.absdiff(ga, gb)))
+
+
+class Votador:
+    """Cada casa recebe a maioria dos últimos quadros."""
+
+    def __init__(self, janela: int = 7):
+        if janela < 1:
+            raise ValueError("janela deve ser >= 1")
+        self._quadros: deque = deque(maxlen=janela)
+
+    def votar(self, grade: list[list[str]], publicado: tuple | None = None) -> list[list[str]]:
+        self._quadros.append(grade)
+        n = len(self._quadros)
+        saida = []
+        for r, linha in enumerate(grade):
+            nova = []
+            for c in range(len(linha)):
+                rotulo, votos = Counter(q[r][c] for q in self._quadros).most_common(1)[0]
+                if votos * 2 <= n and publicado is not None:   # sem maioria: fica o publicado
+                    rotulo = publicado[r][c]
+                nova.append(rotulo)
+            saida.append(nova)
+        return saida
 
 
 class Estabilizador:

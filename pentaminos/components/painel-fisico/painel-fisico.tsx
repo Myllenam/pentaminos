@@ -102,6 +102,14 @@ export function IndicadorCamera({
     );
   }
 
+  if (camera === "leitura_instavel") {
+    return (
+      <Indicador tom="alerta" icone={<AlertTriangle />}>
+        Leitura instável
+      </Indicador>
+    );
+  }
+
   if (camera === "tabuleiro_detectado") {
     return (
       <Indicador tom="ok" icone={<Camera />}>

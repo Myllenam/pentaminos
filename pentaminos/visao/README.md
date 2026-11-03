@@ -63,29 +63,29 @@ Resultado (detalhes e tabelas em `calibracao/relatorio_calibracao.md`):
 
 ## Modos de identificação
 
-`config.py` tem `identificacao`: `"cor"` (padrão) ou `"forma"`. Os dois produzem a mesma grade 6×10
-(letra, `.` ou `?`), então validador, eventos, backend e tela não mudam.
+`config.py` tem `identificacao`: `"combinado"` (padrão), `"cor"` ou `"forma"`. Todos produzem a mesma
+grade 6×10 (letra, `.` ou `?`). O **combinado** decide por peça: usa a do modo forma e, onde ele não
+resolve, a do modo cor.
 
 | | Modo `"cor"` | Modo `"forma"` (`forma.py`) |
 |---|---|---|
-| Como dá nome | Cada casa recebe a cor mais próxima da paleta. | Junta casas ocupadas vizinhas de cor parecida e dá o nome pela **forma** do grupo. |
-| Vazia × ocupada | Cor mais próxima é o `.` da paleta. | Distância até a casa vazia (`calibracao/vazio.json` ou, sem ele, o `.` da paleta), com `limiar_ocupada` ± `margem_ocupada`; no meio vira `?`. |
-| Peças de cor parecida encostadas (V–Z, I–T, U–Y) | Uma casa trocada invalida a peça. | Viram um grupo de 10, 15… casas, dividido em pentaminós por cobertura exata (Algoritmo X do `gerar_solucoes.py`); havendo mais de uma divisão, vence a de menos letras repetidas e, depois, a de cor mais perto da paleta. |
-| Peça inválida | Letra com ≠ 5 casas, desconectada ou forma errada. | Grupo que não se divide em pentaminós (ex.: 4 ou 7 casas) volta para o modo cor casa a casa, e o validador acusa como antes. Duas peças com a mesma forma recebem a mesma letra e o validador acusa as 10 casas. |
+| Como dá nome | Cada casa recebe a cor mais próxima da paleta. | Agrupa casas ocupadas vizinhas e dá o nome pela **forma** do grupo. |
+| Vazia × ocupada | Cor mais próxima é o `.` da paleta. | Distância até a casa vazia (`calibracao/vazio.json` ou o `.` da paleta); no meio vira `?`. |
+| Peças encostadas | Uma casa trocada invalida a peça. | Divide o grupo em pentaminós por cobertura exata (Algoritmo X do `gerar_solucoes.py`). |
+| Peça inválida | Letra com ≠ 5 casas ou forma errada. | O que não se divide volta para o modo cor, e o validador acusa. |
 
-Para trocar, passe um JSON no `--config`:
+Para usar outro modo, passe um JSON no `--config`:
 
 ```powershell
-'{"identificacao": "forma"}' | Out-File -Encoding ascii forma.json
-python loop_ao_vivo.py --fonte 0 --sessao ID --config forma.json
+'{"identificacao": "cor"}' | Out-File -Encoding ascii cor.json
+python loop_ao_vivo.py --fonte 0 --sessao ID --config cor.json
 ```
 
-Limiares do modo forma em `config.py`: `limiar_ocupada`, `margem_ocupada`, `limiar_mesma_peca` e
-`max_divisoes`. Para medir a cor de cada casa vazia na câmera real (opcional), com o tabuleiro vazio
-no enquadramento da homografia: `python forma.py foto_do_tabuleiro_vazio.jpg` (grava `calibracao/vazio.json`).
+Os limiares ficam em `config.py`. Para medir a cor das casas vazias na câmera real (opcional), com o
+tabuleiro vazio no enquadramento: `python forma.py foto_do_tabuleiro_vazio.jpg` (grava `calibracao/vazio.json`).
 
 A comparação entre os modos nas fotos reais está em `calibracao/comparacao_modos.md`
-(`python comparar_modos.py --pasta fotos-pentaminos`). O padrão continua `"cor"` até a equipe decidir.
+(`python comparar_modos.py --pasta fotos-pentaminos`).
 
 ## Regras e decisões
 

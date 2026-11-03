@@ -46,7 +46,19 @@ import {
   ordemDasJogadas,
   SessaoServidor,
 } from "@/lib/fisico/api";
-import { casasPreenchidas, pecasValidas } from "@/lib/fisico/estado";
+import {
+  alternarCasa,
+  chaveCasa,
+  duvidaAtual,
+  montarAtribuicao,
+  motivoSelecao,
+  outrasLetras,
+} from "@/lib/fisico/duvida";
+import {
+  casasPreenchidas,
+  invalidasPorMotivo,
+  pecasValidas,
+} from "@/lib/fisico/estado";
 import { TipoFonte } from "@/lib/fisico/fontes";
 import { useJogoFisico } from "@/lib/hooks/useJogoFisico";
 import { formatElapsedTime } from "@/lib/ranking";
@@ -56,7 +68,7 @@ import {
   LINHAS_FISICO,
   TOTAL_PECAS_FISICO,
 } from "@/lib/types/fisico";
-import { PentominoId } from "@/lib/types/pentomino";
+import { Cell, PentominoId } from "@/lib/types/pentomino";
 
 type Salvamento = "nao_se_aplica" | "salvando" | "salvo" | "erro";
 
@@ -104,6 +116,43 @@ function TelaFisico({
   const [vitoriaFechada, setVitoriaFechada] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  // Dúvida mostrada (uma de cada vez) e o ajuste do jogador nela.
+  const [duvidaId, setDuvidaId] = useState<string | null>(null);
+  const [ajuste, setAjuste] = useState<{
+    chave: string;
+    casas: Cell[];
+    escolhida: PentominoId | null;
+    outras: boolean;
+    aviso: string | null;
+  } | null>(null);
+
+  const atual = duvidaAtual(estado.duvidas, duvidaId);
+  const duvida = atual?.duvida ?? null;
+  const chaveDuvida = duvida
+    ? `${duvida.id}:${duvida.cells.map(chaveCasa).join(";")}`
+    : "";
+  const ajusteAtual = ajuste?.chave === chaveDuvida ? ajuste : null;
+  const selecao = ajusteAtual?.casas ?? duvida?.cells ?? [];
+  const escolhida = ajusteAtual?.escolhida ?? null;
+  const motivoNaoConfirma = escolhida ? motivoSelecao(selecao, escolhida) : null;
+
+  const mudarAjuste = (parcial: Partial<NonNullable<typeof ajuste>>) =>
+    setAjuste({
+      chave: chaveDuvida,
+      casas: selecao,
+      escolhida,
+      outras: ajusteAtual?.outras ?? false,
+      aviso: null,
+      ...parcial,
+    });
+
+  const confirmarDuvida = () => {
+    if (!escolhida) return;
+    const atribuicao = montarAtribuicao(selecao, escolhida);
+    if (typeof atribuicao === "string") return;
+    enviar(atribuicao);
+    mudarAjuste({ aviso: `Enviado: ${escolhida}. Aguardando a câmera confirmar.` });
+  };
   const [salvamento, setSalvamento] =
     useState<Salvamento>("nao_se_aplica");
   const [resultado, setResultado] = useState<ResultadoServidor | null>(null);
@@ -191,7 +240,8 @@ function TelaFisico({
   const preenchidas = casasPreenchidas(estado.grade);
   const tempoFinal = estado.vitoria?.tempoTotalS ?? elapsedSeconds;
 
-  const cameraPerdida = estado.camera === "perdida";
+  const cameraPerdida =
+    estado.camera === "perdida" || estado.camera === "leitura_instavel";
 
   const comandoVisao = (fonte: string) =>
     `cd visao
@@ -330,19 +380,99 @@ python loop_ao_vivo.py --fonte ${fonte} --sessao ${sessaoId}`;
             </div>
           )}
 
+          {duvida && atual && (
+            <div
+              role="status"
+              className="flex w-full max-w-[640px] flex-col gap-2 rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-900 ring-1 ring-blue-200"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold">
+                  Não consegui reconhecer esta peça. Qual é?
+                </p>
+                {estado.duvidas.length > 1 && (
+                  <span className="flex items-center gap-2 text-xs">
+                    {atual.contagem}
+                    <Button size="sm" variant="ghost" onClick={() => setDuvidaId(atual.proxima)}>
+                      Próxima
+                    </Button>
+                  </span>
+                )}
+              </div>
+              <p className="text-xs">
+                As casas com contorno azul são as da peça; toque no tabuleiro para ajustar.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {duvida.candidatas.map((peca) => (
+                  <Button
+                    key={peca}
+                    size="sm"
+                    variant={escolhida === peca ? "default" : "outline"}
+                    onClick={() => mudarAjuste({ escolhida: peca })}
+                  >
+                    {peca}
+                  </Button>
+                ))}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => mudarAjuste({ outras: !ajusteAtual?.outras })}
+                >
+                  Outra
+                </Button>
+              </div>
+              {ajusteAtual?.outras && (
+                <div className="flex flex-wrap gap-1">
+                  {outrasLetras(pecasValidas(estado), duvida.candidatas).map((peca) => (
+                    <Button
+                      key={peca}
+                      size="sm"
+                      variant={escolhida === peca ? "default" : "outline"}
+                      onClick={() => mudarAjuste({ escolhida: peca })}
+                    >
+                      {peca}
+                    </Button>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  disabled={!escolhida || motivoNaoConfirma !== null}
+                  onClick={confirmarDuvida}
+                >
+                  Confirmar
+                </Button>
+                {motivoNaoConfirma && <p className="text-xs">{motivoNaoConfirma}</p>}
+              </div>
+              {ajusteAtual?.aviso && <p className="text-xs">{ajusteAtual.aviso}</p>}
+            </div>
+          )}
+
           <BoardFisico
             grade={estado.grade}
             pecasInvalidas={invalidas}
+            selecionadas={duvida ? new Set(selecao.map(chaveCasa)) : undefined}
+            onCasaClick={
+              duvida
+                ? (linha, coluna) =>
+                    mudarAjuste({ casas: alternarCasa(selecao, [linha, coluna]) })
+                : undefined
+            }
             sobreposicao={
               cameraPerdida ? (
                 <div className="flex max-w-xs flex-col items-center gap-2 rounded-lg bg-white px-5 py-4 text-center shadow-lg ring-1 ring-amber-200">
                   <CameraOff className="size-6 text-amber-600" />
                   <p className="font-semibold text-foreground">
-                    Câmera perdida
+                    {estado.camera === "perdida"
+                      ? "Câmera perdida"
+                      : "Leitura instável"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Mostrando a última leitura. Verifique a câmera e se o
-                    tabuleiro está inteiro no campo de visão.
+                    {estado.camera === "leitura_instavel" && estado.cameraDetalhe
+                      ? `${estado.cameraDetalhe}. `
+                      : ""}
+                    Mostrando a última leitura. Verifique a câmera, a luz e se
+                    o tabuleiro está inteiro no campo de visão.
                   </p>
                 </div>
               ) : null
@@ -351,11 +481,10 @@ python loop_ao_vivo.py --fonte ${fonte} --sessao ${sessaoId}`;
 
           {invalidas.size > 0 && (
             <ul className="flex w-full max-w-[640px] flex-col gap-1 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-red-200">
-              {[...invalidas].map((letra) => (
-                <li key={letra} className="flex items-center gap-2">
+              {invalidasPorMotivo(estado).map(({ motivo, pecas }) => (
+                <li key={motivo} className="flex items-center gap-2">
                   <AlertTriangle className="size-4 shrink-0" />
-                  Peça {letra} inválida:{" "}
-                  {estado.pecas[letra as keyof typeof estado.pecas]?.motivo}
+                  {pecas.length > 1 ? "Peças" : "Peça"} {pecas.join(", ")}: {motivo}
                 </li>
               ))}
             </ul>

@@ -1,8 +1,10 @@
 import { motivoPecaInvalida } from "@/lib/fisico/forma";
 import { Cell, PentominoId } from "@/lib/types/pentomino";
 import {
+  AtribuirPeca,
   COLUNAS_FISICO,
   LINHAS_FISICO,
+  Duvida,
   GradeVisao,
   MensagemFisico,
   StatusCamera,
@@ -35,8 +37,11 @@ export interface EstadoFisico {
   // Ordem de colocação.
   ordemColocacao: PentominoId[];
   eventos: EventoFisico[]; // mais recente primeiro
-  numeroJogadas: number; // como no backend: soma 1 a cada piece_placed
+  numeroJogadas: number; // como no backend: peça válida em posição nova
+  ultimasPosicoes: Partial<Record<PentominoId, string>>; // última posição válida
   camera: StatusCamera | null; // null = nunca informado
+  duvidas: Duvida[]; // peças que a visão pergunta ao jogador
+  cameraDetalhe: string | null; // motivo da leitura instável
   erro: string | null; // último error/camera_error
   vitoria: VitoriaFisica | null;
   // Modo simulado: sem game_won.
@@ -45,6 +50,7 @@ export interface EstadoFisico {
 
 export type AcaoFisico =
   | { tipo: "mensagem"; mensagem: MensagemFisico }
+  | { tipo: "atribuir"; atribuicao: AtribuirPeca } // modo simulado: aplica direto
   | { tipo: "reiniciar"; detectarVitoriaLocal: boolean };
 
 export const MAX_EVENTOS = 50;
@@ -62,15 +68,39 @@ export function estadoInicial(
     ordemColocacao: [],
     eventos: [],
     numeroJogadas: 0,
+    ultimasPosicoes: {},
     camera: null,
+    duvidas: [],
+    cameraDetalhe: null,
     erro: null,
     vitoria: null,
     detectarVitoriaLocal,
   };
 }
 
+function chavePosicao(casas: Cell[]): string {
+  return casas.map(([r, c]) => `${r},${c}`).sort().join(";");
+}
+
 function gradeEmTexto(grid: GradeVisao): string[] {
   return grid.map((linha) => linha.join(""));
+}
+
+// Peças inválidas agrupadas pelo motivo.
+export function invalidasPorMotivo(
+  estado: EstadoFisico,
+): { motivo: string; pecas: PentominoId[] }[] {
+  const grupos = new Map<string, PentominoId[]>();
+
+  for (const [letra, peca] of Object.entries(estado.pecas)) {
+    if (peca.valida) continue;
+    const motivo = peca.motivo ?? "peça inválida";
+    grupos.set(motivo, [...(grupos.get(motivo) ?? []), letra as PentominoId]);
+  }
+
+  return [...grupos]
+    .map(([motivo, pecas]) => ({ motivo, pecas: pecas.sort() }))
+    .sort((a, b) => a.motivo.localeCompare(b.motivo));
 }
 
 export function casasPreenchidas(grade: string[]): number {
@@ -112,13 +142,19 @@ function aplicarMensagem(
 ): EstadoFisico {
   switch (mensagem.type) {
     case "board_state":
-      return { ...estado, grade: gradeEmTexto(mensagem.grid) };
+      return {
+        ...estado,
+        grade: gradeEmTexto(mensagem.grid),
+        duvidas: mensagem.duvidas ?? [],
+      };
 
     case "piece_placed": {
       const { piece, cells, valid } = mensagem;
       const motivo = valid
         ? undefined
         : motivoPecaInvalida(piece, cells);
+      const posicao = chavePosicao(cells);
+      const conta = valid && estado.ultimasPosicoes[piece] !== posicao;
 
       return {
         ...estado,
@@ -130,14 +166,19 @@ function aplicarMensagem(
           ...estado.ordemColocacao.filter((p) => p !== piece),
           piece,
         ],
-        numeroJogadas: estado.numeroJogadas + 1,
+        numeroJogadas: estado.numeroJogadas + (conta ? 1 : 0),
+        ultimasPosicoes: valid
+          ? { ...estado.ultimasPosicoes, [piece]: posicao }
+          : estado.ultimasPosicoes,
         eventos: novoEvento(estado, {
           ts: mensagem.ts,
           peca: piece,
           tipo: valid ? "colocada" : "invalida",
-          texto: valid
-            ? `${piece} colocada`
-            : `${piece} inválida: ${motivo}`,
+          texto: !valid
+            ? `${piece} inválida: ${motivo}`
+            : mensagem.manual
+              ? `${piece} definida pelo jogador`
+              : `${piece} colocada`,
         }),
       };
     }
@@ -163,7 +204,7 @@ function aplicarMensagem(
     }
 
     case "camera_status":
-      return { ...estado, camera: mensagem.status };
+      return { ...estado, camera: mensagem.status, cameraDetalhe: mensagem.detail ?? null };
 
     case "error":
     case "camera_error": {
@@ -208,6 +249,36 @@ function aplicarMensagem(
   }
 }
 
+// Sem visão: grava a peça e manda um piece_placed manual.
+function aplicarAtribuicao(
+  estado: EstadoFisico,
+  { cells, piece }: AtribuirPeca,
+): EstadoFisico {
+  const marcadas = new Set(cells.map(([r, c]) => `${r},${c}`));
+  const toca = (casas: Cell[]) => casas.some(([r, c]) => marcadas.has(`${r},${c}`));
+  const grade = estado.grade.map((linha) => [...linha]);
+  const pecas = { ...estado.pecas };
+
+  for (const [letra, peca] of Object.entries(pecas)) {
+    if (letra === piece || (!peca.valida && toca(peca.casas))) {
+      peca.casas.forEach(([r, c]) => (grade[r][c] = letra === piece ? "." : "?"));
+      delete pecas[letra as PentominoId];
+    }
+  }
+  cells.forEach(([r, c]) => (grade[r][c] = piece));
+
+  return aplicarMensagem(
+    {
+      ...estado,
+      grade: grade.map((linha) => linha.join("")),
+      pecas,
+      duvidas: estado.duvidas.filter((d) => !toca(d.cells)),
+    },
+    { type: "piece_placed", session: "local", ts: Math.floor(Date.now() / 1000),
+      piece, cells, valid: true, manual: true },
+  );
+}
+
 export function reducerFisico(
   estado: EstadoFisico,
   acao: AcaoFisico,
@@ -216,7 +287,10 @@ export function reducerFisico(
     return estadoInicial(acao.detectarVitoriaLocal);
   }
 
-  const proximo = aplicarMensagem(estado, acao.mensagem);
+  const proximo =
+    acao.tipo === "atribuir"
+      ? aplicarAtribuicao(estado, acao.atribuicao)
+      : aplicarMensagem(estado, acao.mensagem);
 
   if (
     !proximo.vitoria &&
