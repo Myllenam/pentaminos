@@ -1,9 +1,4 @@
-"""Pipeline completo, de um quadro da câmera às mensagens do contrato JSON.
-
-Passos: retificar -> amostrar casas -> classificar -> descartar (oclusão/incerteza)
--> estabilizar -> validar -> gerar eventos. Ainda não fala WebSocket: devolve as
-mensagens (dicts) para o cliente de rede (fase de integração).
-"""
+"""Pipeline: quadro da câmera -> mensagens do contrato JSON."""
 from __future__ import annotations
 
 import time
@@ -13,6 +8,7 @@ import numpy as np
 
 from config import Config
 from estabilizacao import Estabilizador, mudanca_media
+from forma import classificar_forma
 from localizacao import retificar
 from validador import ResultadoEstado, diferencas, validar_estado
 from visao import Paleta, classificar, cores_das_celulas
@@ -27,8 +23,10 @@ class ResultadoQuadro:
 
 
 class Pipeline:
-    def __init__(self, cfg: Config, H: np.ndarray, paleta: Paleta, sessao: str = "local"):
+    def __init__(self, cfg: Config, H: np.ndarray, paleta: Paleta, sessao: str = "local",
+                 cores_vazio: np.ndarray | None = None):
         self.cfg, self.H, self.paleta, self.sessao = cfg, H, paleta, sessao
+        self.cores_vazio = cores_vazio   # só usado no modo "forma"
         self._estab = Estabilizador(cfg.quadros_estaveis)
         self._anterior: np.ndarray | None = None
         self._estado: ResultadoEstado | None = None
@@ -44,7 +42,10 @@ class Pipeline:
         self._anterior = topo
 
         cores = cores_das_celulas(topo, cfg.linhas, cfg.colunas, cfg.fracao_central)
-        grade, _ = classificar(cores, self.paleta, cfg.limiar_incerto)
+        if cfg.identificacao == "forma":
+            grade = classificar_forma(cores, self.paleta, cfg, self.cores_vazio)
+        else:
+            grade, _ = classificar(cores, self.paleta, cfg.limiar_incerto, cfg.peso_l)
         incertas = sum(linha.count("?") for linha in grade)
 
         motivo = ""

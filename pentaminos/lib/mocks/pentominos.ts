@@ -16,7 +16,7 @@ export const PENTOMINOES: PentominoShape[] = [
   { id: "Z", name: "Z", color: "#f43f5e", cells: [[0,0],[0,1],[1,1],[2,1],[2,2]] },
 ];
 
-// Gera um "jogo" mockado com N peças (2 a 12), pra simular o estado inicial da tela
+// Jogo mockado com N peças.
 export function getMockGamePieces(count: number = 6) {
   const shuffled = [...PENTOMINOES].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, Math.min(Math.max(count, 3), 12)).map((shape, i) => ({

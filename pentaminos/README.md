@@ -34,3 +34,8 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+## Modo de tabuleiro físico
+
+Na tela inicial, escolha **Tabuleiro físico** e clique em Iniciar Partida: a aplicação cria a sessão no backend e abre `/jogar-fisico`. Com o backend FastAPI e o Next.js rodando, execute em outro terminal o comando exibido na tela. Para testar sem câmera use `python loop_ao_vivo.py --fonte sintetica --sessao ID`; para câmera real use `--fonte 0` ou a URL do aplicativo de câmera. O serviço de visão e o navegador trocam eventos por WebSocket por sala/sessão. Veja `visao/README.md` e `backend/README.md` para detalhes.

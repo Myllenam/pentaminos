@@ -1,27 +1,4 @@
-/**
- * Teste de escalabilidade do solver de Pentaminós: instâncias com MAIS de 12 peças.
- *
- * Só existem 12 pentaminós distintos, então acima de 12 as peças se repetem
- * (equivale a usar mais de um conjunto completo). O gerador do jogo limita N a 12,
- * por isso este script tem um gerador próprio, que NÃO altera o código do jogo:
- * sorteia um empacotamento aleatório de um tabuleiro 5xN (solução garantida por
- * construção), com no máximo ceil(N/12) cópias de cada peça, e entrega ao solver
- * apenas o conjunto de peças, embaralhado.
- *
- * Cada instância é resolvida de duas formas:
- *   - "padrão": exatamente como o solver do jogo (peças iguais são tratadas como distintas);
- *   - "agrupando iguais": em cada nó só uma peça de cada forma é tentada.
- *
- * Como rodar (a partir da raiz do projeto):
- *   npx tsx scripts/avaliarEscalabilidade.ts
- *
- * Opções por variável de ambiente (PowerShell: $env:NOME=valor):
- *   REPETICOES=10   instâncias por N (padrão 10)
- *   TAMANHOS=13,14,15,16   lista de N (padrão 12 a 18)
- *   LIMITE_S=20     limite de tempo por resolução, em segundos (padrão 20)
- *   SEED=12345      semente
- * O script para de aumentar N quando nenhuma instância de um N é resolvida no limite.
- */
+// Mede o solver com mais de 12 peças (env: REPETICOES, TAMANHOS, LIMITE_S, SEED).
 
 import * as fs from "node:fs";
 import * as os from "node:os";

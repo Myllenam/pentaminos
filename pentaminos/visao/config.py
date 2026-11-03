@@ -18,10 +18,17 @@ class Config:
     px_por_casa: int = 100           # 600 x 1000 px no 6x10
     fracao_central: float = 0.6      # recorte central de cada casa
     # --- classificação ---
-    limiar_incerto: float = 20.0     # (AJUSTAR) distância Lab máx. até a cor mais próxima
+    peso_l: float = 0.5              # peso da luminosidade (L) na distância Lab; a, b valem 1
+    limiar_incerto: float = 16.0     # distância Lab ponderada máx. até a cor mais próxima
+    identificacao: str = "cor"       # "cor" ou "forma"
+    # --- modo "forma" ---
+    limiar_ocupada: float = 26.0     # vazia × ocupada (distância à casa vazia)
+    margem_ocupada: float = 4.0      # faixa do limiar_ocupada que vira "?"
+    limiar_mesma_peca: float = 20.0  # vizinhas abaixo disto ficam no mesmo grupo
+    max_divisoes: int = 200          # divisões examinadas por grupo grande
     # --- estabilização / oclusão ---
     quadros_estaveis: int = 3        # quadros consecutivos iguais para publicar
-    max_incertas: int = 0            # (AJUSTAR) casas incertas toleradas num quadro
+    max_incertas: int = 3            # casas incertas toleradas num quadro (mão/sombra passam disso)
     limiar_mudanca: float = 8.0      # (AJUSTAR) diferença média entre quadros (0-255)
     # --- captura ---
     fonte_camera: str = "0"          # índice da webcam ou URL do app de celular
@@ -29,6 +36,11 @@ class Config:
     # --- arquivos ---
     arquivo_homografia: str = "calibracao/homografia.json"
     arquivo_paleta: str = "calibracao/paleta.json"
+    arquivo_vazio: str = "calibracao/vazio.json"   # cor de cada casa vazia
+
+    def __post_init__(self):
+        if self.identificacao not in ("cor", "forma"):
+            raise ValueError(f"identificacao deve ser 'cor' ou 'forma', não {self.identificacao!r}")
 
     @property
     def largura_px(self) -> int:

@@ -9,11 +9,9 @@ import { PENTOMINOES } from "@/lib/mocks/pentominos";
 
 export interface GeneratedBoard {
   config: BoardConfig;
-  /** Peças na posição usada para gerar o tabuleiro — guardadas só para
-   *  validar a solução do jogador depois, nunca renderizadas diretamente. */
+  // Solução usada só para validar.
   solutionPieces: PlacedPiece[];
-  /** Mesmas peças com origin: null — é isso que vai para o banco de peças
-   *  que o jogador recebe para resolver manualmente. */
+  // Peças entregues ao jogador.
   availablePieces: PlacedPiece[];
 }
 
@@ -41,12 +39,7 @@ function serializeCells(cells: Cell[]): string {
     .join("|");
 }
 
-/**
- * Aplica apenas rotação a um shape base (sem espelhamento — não faz parte
- * das regras do jogo). Exportada porque o Board (e qualquer preview de
- * peça) precisa desenhar a peça na orientação real em que ela foi
- * colocada, não sempre na forma "crua" do catálogo.
- */
+// Só rotação, sem espelhamento.
 export function transformCells(
   cells: Cell[],
   rotation: 0 | 90 | 180 | 270,
@@ -161,12 +154,7 @@ function fitsInBoard(
 
 // ---------- dimensões do tabuleiro ----------
 
-/**
- * Calcula os pares (linhas x colunas) mais próximos da raiz quadrada da
- * área total, ordenados por proximidade — inclui também a versão
- * transposta de cada par, usada como alternativa quando o empacotamento
- * falha na orientação "principal".
- */
+// Dimensões mais quadradas primeiro, com as transpostas.
 function calcularDimensoesCandidatas(quantidadePecas: number): BoardConfig[] {
   const area = quantidadePecas * 5;
   const divisores: Array<[number, number]> = [];
@@ -288,8 +276,7 @@ function encaixarBacktracking(
     });
   }
 
-  // percorre a matriz célula a célula (via primeiraCelulaVazia); ao achar uma
-  // vazia, tenta encaixar cada peça ainda não usada, em cada orientação
+  // Preenche a primeira casa vazia.
   function backtrack(restantes: Instancia[]): boolean {
     nos++;
     if (nos > MAX_NOS_POR_TENTATIVA) return false;
@@ -348,20 +335,7 @@ function encaixarBacktracking(
 const TENTATIVAS_SEM_REPETICAO = 40;
 const TENTATIVAS_COM_REPETICAO = 60;
 
-/**
- * Gera um tabuleiro completo e válido para `quantidadePecas` (2 a 12
- * peças), depois "quebra" essa configuração: devolve o board vazio
- * (config) e o banco de peças disponíveis (availablePieces, com
- * origin: null), mantendo a configuração original (solutionPieces)
- * apenas como referência interna de validação.
- *
- * Estratégia em 3 fases, para garantir que sempre existe uma solução:
- *  1. peças distintas embaralhadas (produz tabuleiros mais variados);
- *  2. se não encontrar em nenhuma dimensão candidata, permite repetir
- *     peças (necessário sobretudo para poucas peças, ex.: 2, onde não
- *     existe par de pentaminós distintos que preencha um 2x5 exato);
- *  3. fallback determinístico com peças "I" em pé, que nunca falha.
- */
+// Tabuleiro com solução: peças distintas, depois repetidas, depois só "I".
 export function gerarTabuleiro(quantidadePecas: number): GeneratedBoard {
   const n = Math.min(Math.max(quantidadePecas, 3), 12);
   const candidatos = calcularDimensoesCandidatas(n);
@@ -384,8 +358,7 @@ export function gerarTabuleiro(quantidadePecas: number): GeneratedBoard {
     }
   }
 
-  // fallback: linhas = 5 sempre divide a área (5 * n), então n peças "I"
-  // em pé (uma por coluna) preenchem o tabuleiro por completo.
+  // Fallback: n peças "I" em pé.
   const rows = 5;
   const cols = n;
   const solucaoFallback: PlacedPiece[] = Array.from({ length: n }, (_, i) => ({

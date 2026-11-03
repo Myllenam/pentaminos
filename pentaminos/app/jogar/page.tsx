@@ -133,8 +133,7 @@ function GamePage() {
   }, [isRunning, setElapsedSeconds]);
 
   const handleRestart = () => {
-    // Depois que o algoritmo resolve,
-    // não permitimos reiniciar a partida.
+    // Bloqueado após resolver.
     if (autoSolved) {
       return;
     }
@@ -198,9 +197,7 @@ function GamePage() {
     row: number,
     col: number,
   ) => {
-    // ==========================================
-    // 1. COLOCAR UMA PEÇA
-    // ==========================================
+    // Colocar peça
 
     if (selectedInstanceId) {
       const selectedPiece = pieces.find(
@@ -277,8 +274,7 @@ function GamePage() {
               piece.origin !== null,
           );
 
-        // Apenas uma solução feita manualmente
-        // entra no ranking.
+        // Só solução manual entra no ranking.
         if (
           isFinished &&
           !hasRegisteredGame.current
@@ -305,9 +301,7 @@ function GamePage() {
       return;
     }
 
-    // ==========================================
-    // 2. RETIRAR UMA PEÇA
-    // ==========================================
+    // Retirar peça
 
     const owner = pieces.find(
       (piece) => {
@@ -373,8 +367,7 @@ function GamePage() {
     setSelectedInstanceId(null);
 
     try {
-      // O solver começa com todas as peças
-      // fora do tabuleiro.
+      // Solver começa do zero.
       const clearedPieces = pieces.map(
         (piece) => ({
           ...piece,
@@ -406,12 +399,7 @@ function GamePage() {
           outcome.placements,
         );
 
-        // Marca a partida como concluída
-        // para impedir qualquer registro
-        // posterior no ranking.
-        //
-        // IMPORTANTE:
-        // não chamamos finishGame aqui.
+        // Não entra no ranking.
         hasRegisteredGame.current =
           true;
       } else {
@@ -452,8 +440,8 @@ function GamePage() {
         restartDisabled={autoSolved}
       />
 
-      <main className="mx-auto flex w-full flex-1 flex-row gap-8 px-8 py-12">
-        <aside className="w-1/4">
+      <main className="mx-auto flex w-full flex-1 flex-col gap-6 px-4 py-6 lg:flex-row lg:gap-8 lg:px-8 lg:py-12">
+        <aside className="w-full lg:w-1/4">
           <div className="rounded-xl border border-gray-200 bg-white p-4">
             <p className="text-sm font-semibold text-foreground">
               SUAS PEÇAS
@@ -463,7 +451,7 @@ function GamePage() {
               Clique em uma peça para posicioná-la.
             </p>
 
-            <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-col">
               {pieces.map((piece) => (
                 <PieceCard
                   key={piece.instanceId}
@@ -491,7 +479,7 @@ function GamePage() {
           </div>
         </aside>
 
-        <section className="flex flex-1 flex-col items-center justify-start pt-10">
+        <section className="order-first flex min-w-0 flex-1 flex-col items-center justify-start lg:order-none lg:pt-10">
           <Board
             config={board.config}
             placedPieces={pieces}
@@ -528,7 +516,7 @@ function GamePage() {
           </div>
         </section>
 
-        <aside className="flex w-[288px] shrink-0 flex-col gap-4">
+        <aside className="flex w-full flex-col gap-4 lg:w-[288px] lg:shrink-0">
           <Progresso
             celulasPreenchidas={
               filledCells
@@ -544,6 +532,7 @@ function GamePage() {
           <ComoJogar />
 
           <Controles
+            className="w-full"
             onInfoClick={() =>
               console.log(
                 "abrir detalhes",

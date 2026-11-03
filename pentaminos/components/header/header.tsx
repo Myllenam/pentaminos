@@ -35,15 +35,15 @@ export function Header({
   restartDisabled = false,
 }: Partial<HeaderProps>) {
   return (
-    <header className="flex w-full items-center justify-between gap-4 border-b border-border bg-white px-6 py-3">
+    <header className="flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-border bg-white px-4 py-3 sm:px-6">
       <div className="flex items-center gap-2">
         <Logo />
-        <span className="text-lg font-bold tracking-tight text-foreground">
+        <span className="hidden text-lg font-bold tracking-tight text-foreground sm:inline">
           PENTAMINÓS
         </span>
       </div>
 
-      <div className="flex items-center gap-8">
+      <div className="order-last flex w-full items-center justify-around gap-4 lg:order-none lg:w-auto lg:gap-8">
         <div className="flex flex-col items-center">
           <span className="text-xs font-medium tracking-wide text-muted-foreground">
             JOGADOR
@@ -73,7 +73,7 @@ export function Header({
 
         <div className="flex flex-col items-center">
           <span className="text-xs font-medium tracking-wide text-muted-foreground">
-            CÉLULAS PREENCHIDAS
+            CÉLULAS<span className="hidden sm:inline"> PREENCHIDAS</span>
           </span>
           <span className="text-sm font-semibold">
             <span className="text-primary">
@@ -92,9 +92,10 @@ export function Header({
           className="w-auto"
           data-icon="inline-start"
           onClick={onOpenRanking}
+          aria-label="Ranking"
         >
           <Trophy data-icon="inline-start" />
-          Ranking
+          <span className="hidden sm:inline">Ranking</span>
         </Button>
 
         <Button
@@ -102,6 +103,7 @@ export function Header({
           className="w-auto"
           data-icon="inline-start"
           onClick={onRestart}
+          aria-label="Reiniciar"
           disabled={restartDisabled}
           title={
             restartDisabled
@@ -110,16 +112,17 @@ export function Header({
           }
         >
           <RotateCcw data-icon="inline-start" />
-          Reiniciar
+          <span className="hidden sm:inline">Reiniciar</span>
         </Button>
 
         <Button
           className="w-auto"
           data-icon="inline-start"
           onClick={onNewGame}
+          aria-label="Novo Jogo"
         >
           <Play data-icon="inline-start" />
-          Novo Jogo
+          <span className="hidden sm:inline">Novo Jogo</span>
         </Button>
       </div>
     </header>

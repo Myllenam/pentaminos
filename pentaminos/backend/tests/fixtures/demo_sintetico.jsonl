@@ -1,0 +1,29 @@
+{"type": "board_state", "session": "demo", "ts": 1793141067, "grid": ["..........", "..........", "..........", "..........", "..........", ".........."]}
+{"type": "board_state", "session": "demo", "ts": 1793141068, "grid": ["..........", "..........", "..........", "..F.......", "..FF......", ".FF......."]}
+{"type": "piece_placed", "session": "demo", "ts": 1793141068, "piece": "F", "cells": [[3, 2], [4, 2], [4, 3], [5, 1], [5, 2]], "valid": true}
+{"type": "board_state", "session": "demo", "ts": 1793141068, "grid": ["IIIII.....", "..........", "..........", "..F.......", "..FF......", ".FF......."]}
+{"type": "piece_placed", "session": "demo", "ts": 1793141068, "piece": "I", "cells": [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]], "valid": true}
+{"type": "board_state", "session": "demo", "ts": 1793141069, "grid": ["IIIII.....", "..........", "..........", "..F.......", "..FF.....L", ".FF...LLLL"]}
+{"type": "piece_placed", "session": "demo", "ts": 1793141069, "piece": "L", "cells": [[4, 9], [5, 6], [5, 7], [5, 8], [5, 9]], "valid": true}
+{"type": "board_state", "session": "demo", "ts": 1793141070, "grid": ["..........", "..........", "..........", "..F.......", "..FF.....L", ".FF...LLLL"]}
+{"type": "piece_removed", "session": "demo", "ts": 1793141070, "piece": "I", "cells": [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]], "valid": true}
+{"type": "board_state", "session": "demo", "ts": 1793141070, "grid": ["IIIII.....", "..........", "..........", "..F.......", "..FF.....L", ".FF...LLLL"]}
+{"type": "piece_placed", "session": "demo", "ts": 1793141070, "piece": "I", "cells": [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]], "valid": true}
+{"type": "board_state", "session": "demo", "ts": 1793141071, "grid": ["IIIII.....", "..........", ".N........", ".NF.......", "NNFF.....L", "NFF...LLLL"]}
+{"type": "piece_placed", "session": "demo", "ts": 1793141071, "piece": "N", "cells": [[2, 1], [3, 1], [4, 0], [4, 1], [5, 0]], "valid": true}
+{"type": "board_state", "session": "demo", "ts": 1793141071, "grid": ["IIIII.....", "..........", ".N......PP", ".NF.....PP", "NNFF....PL", "NFF...LLLL"]}
+{"type": "piece_placed", "session": "demo", "ts": 1793141071, "piece": "P", "cells": [[2, 8], [2, 9], [3, 8], [3, 9], [4, 8]], "valid": true}
+{"type": "board_state", "session": "demo", "ts": 1793141072, "grid": ["IIIII.....", "..........", ".N......PP", ".NF.T...PP", "NNFFT...PL", "NFFTTTLLLL"]}
+{"type": "piece_placed", "session": "demo", "ts": 1793141072, "piece": "T", "cells": [[3, 4], [4, 4], [5, 3], [5, 4], [5, 5]], "valid": true}
+{"type": "board_state", "session": "demo", "ts": 1793141073, "grid": ["IIIII.....", "..........", ".N......PP", ".NF.TU.UPP", "NNFFTUUUPL", "NFFTTTLLLL"]}
+{"type": "piece_placed", "session": "demo", "ts": 1793141073, "piece": "U", "cells": [[3, 5], [3, 7], [4, 5], [4, 6], [4, 7]], "valid": true}
+{"type": "board_state", "session": "demo", "ts": 1793141073, "grid": ["IIIII.....", "VVV.......", "VN......PP", "VNF.TU.UPP", "NNFFTUUUPL", "NFFTTTLLLL"]}
+{"type": "piece_placed", "session": "demo", "ts": 1793141073, "piece": "V", "cells": [[1, 0], [1, 1], [1, 2], [2, 0], [3, 0]], "valid": true}
+{"type": "board_state", "session": "demo", "ts": 1793141074, "grid": ["IIIII.....", "VVV.WW....", "VN...WW.PP", "VNF.TUWUPP", "NNFFTUUUPL", "NFFTTTLLLL"]}
+{"type": "piece_placed", "session": "demo", "ts": 1793141074, "piece": "W", "cells": [[1, 4], [1, 5], [2, 5], [2, 6], [3, 6]], "valid": true}
+{"type": "board_state", "session": "demo", "ts": 1793141075, "grid": ["IIIII.....", "VVVXWW....", "VNXXXWW.PP", "VNFXTUWUPP", "NNFFTUUUPL", "NFFTTTLLLL"]}
+{"type": "piece_placed", "session": "demo", "ts": 1793141075, "piece": "X", "cells": [[1, 3], [2, 2], [2, 3], [2, 4], [3, 3]], "valid": true}
+{"type": "board_state", "session": "demo", "ts": 1793141075, "grid": ["IIIIIYYYY.", "VVVXWWY...", "VNXXXWW.PP", "VNFXTUWUPP", "NNFFTUUUPL", "NFFTTTLLLL"]}
+{"type": "piece_placed", "session": "demo", "ts": 1793141075, "piece": "Y", "cells": [[0, 5], [0, 6], [0, 7], [0, 8], [1, 6]], "valid": true}
+{"type": "board_state", "session": "demo", "ts": 1793141076, "grid": ["IIIIIYYYYZ", "VVVXWWYZZZ", "VNXXXWWZPP", "VNFXTUWUPP", "NNFFTUUUPL", "NFFTTTLLLL"]}
+{"type": "piece_placed", "session": "demo", "ts": 1793141076, "piece": "Z", "cells": [[0, 9], [1, 7], [1, 8], [1, 9], [2, 7]], "valid": true}
