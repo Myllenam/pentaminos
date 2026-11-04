@@ -1,11 +1,11 @@
 # Backend — Pentaminós
 
-API (FastAPI) das sessões, jogadas e calibração, com o WebSocket do modo físico.
+API (FastAPI) de sessões, jogadas e calibração, com o WebSocket do modo físico.
 
-## Como rodar (Windows / PowerShell)
+## Como rodar
 
 ```powershell
-cd backend
+cd pentaminos\backend
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
@@ -14,11 +14,8 @@ alembic upgrade head        # cria as tabelas
 uvicorn app.main:app --reload
 ```
 
-- API em `http://localhost:8000`; rotas e testes manuais em `http://localhost:8000/docs`.
-- Testes: `pytest`.
-- Banco: `DATABASE_URL` no `.env` (padrão `sqlite:///./pentaminos.db`; Postgres:
-  `postgresql+psycopg://usuario:senha@localhost:5432/pentaminos`, com `pip install "psycopg[binary]"`).
-  Depois de trocar, rode `alembic upgrade head` de novo.
+- **API:** http://localhost:8000, com as rotas em http://localhost:8000/docs.
+- **Testes:** `pytest`.
+- **Postgres:** instale `psycopg[binary]`, ajuste o `DATABASE_URL` no `.env` e rode `alembic upgrade head` de novo.
+- **Mensagens do WebSocket:** tipos em `../lib/types/fisico.ts`.
 - Se o PowerShell bloquear o `Activate.ps1`: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
-
-Mensagens do WebSocket: `../docs/contrato-websocket.md`.
