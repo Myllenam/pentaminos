@@ -1,132 +1,43 @@
-# Serviço de visão — Pentaminós físico (P2)
+# Visão — Pentaminós
 
-Lê o tabuleiro 6×10 pela câmera do celular, classifica cada casa pela cor e valida as peças.
-Esta etapa cobre as **fases 1 e 3** do plano: ambiente e o código que não depende de fotos reais.
-Ainda **não** fala WebSocket nem tem a calibração com fotos reais (fases 4, 5 e integração).
+Lê o tabuleiro 6×10 pela câmera, identifica as peças e envia os eventos ao backend pelo WebSocket.
 
-## Instalação (Windows / PowerShell)
+## Como rodar
+
+Precisa do [backend](../backend/README.md) no ar e do ID de uma sessão física, que a tela mostra ao começar a partida.
 
 ```powershell
-cd visao
+cd pentaminos\visao
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-python -m unittest discover -s tests -t . -v      # 53 testes, ~30 s
-python demo_sintetico.py                          # partida simulada, sem câmera
+
+python loop_ao_vivo.py --fonte sintetica --sessao ID_DA_SESSAO               # sem câmera
+python loop_ao_vivo.py --fonte 0 --sessao ID_DA_SESSAO                       # webcam
+python loop_ao_vivo.py --fonte http://IP_DO_CELULAR:4747/video --sessao ID_DA_SESSAO   # celular
 ```
 
-Se o PowerShell bloquear o `Activate.ps1`: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+**Testes:** `python -m unittest discover -s tests -t .`
 
-## Arquivos
+## Calibrar a câmera
 
-| Arquivo | O que faz |
-|---|---|
-| `config.py` | Parâmetros (6×10, 12 peças, espelhar, limiares). Sobrescreva com um JSON. |
-| `pentaminos.py` | As 12 peças (mesmas formas do jogo digital), orientações, verificação de forma. |
-| `validador.py` | Valida cada peça (5 casas, conectadas, forma certa), detecta vitória, gera eventos. |
-| `localizacao.py` | Calibração manual: 4 cliques nos cantos → homografia salva em JSON. |
-| `visao.py` | Cor mediana por casa, paleta, classificação por vizinho mais próximo, `construir_paleta`. |
-| `estabilizacao.py` | 3 quadros consecutivos iguais; descarta quadros com movimento. |
-| `pipeline.py` | Junta tudo: quadro → mensagens `board_state` / `piece_placed` / `piece_removed`. |
-| `gerar_solucoes.py` | Gera e conta soluções do 6×10 (Algoritmo X). |
-| `sintetico.py` | Imagens de teste (perspectiva, ruído, "mão"). |
-| `testar_camera.py` | Fase 1: testa DroidCam/IP Webcam e mede o fps. |
-| `calibrar_fotos.py` | Atividade 4: mede as cores nas fotos reais, escolhe espaço de cor e limiar, diz se precisa de ArUco. |
-| `calibracao/` | `paleta.json` (medida nas fotos) e `relatorio_calibracao.md` (números e decisões). |
-
-## Como usar com o celular
+Refaça a homografia sempre que a câmera ou o tabuleiro se mexerem, e a paleta quando a luz ou o local mudarem.
 
 ```powershell
-python testar_camera.py --fonte 0 --mostrar                        # ou http://IP:4747/video
-python localizacao.py --fonte 0                                    # 4 cliques; salva calibracao/homografia.json
+python testar_camera.py --fonte 0 --mostrar                 # testa a câmera
+python localizacao.py --fonte 0                             # 4 cliques nos cantos: gera calibracao/homografia.json
+python calibrar_fotos.py --pasta fotos-pentaminos           # gera calibracao/paleta.json
+python forma.py foto_do_tabuleiro_vazio.jpg                 # opcional: gera calibracao/vazio.json
 ```
 
-Ordem dos cliques: superior esquerdo, superior direito, inferior direito, inferior esquerdo, com o
-lado maior (10 casas) na horizontal. Refazer sempre que o celular ou o tabuleiro se mexerem.
-
-## Calibração com fotos reais (Atividade 4)
-
-```powershell
-python calibrar_fotos.py --pasta ..\fotos-pentaminos      # gera calibracao/paleta.json e o relatório
-```
-
-Resultado (detalhes e tabelas em `calibracao/relatorio_calibracao.md`):
-
-- **Espaço de cor:** Lab com a luminosidade pesando 0,5 (`peso_l`). Erro de 0,9% das casas contra 2,0% (Lab puro),
-  2,3% (HSV) e 6,2% (só a, b). Paleta medida com o **tabuleiro montado** (as fotos de peça sozinha dão 7,5%).
-- **Limiar:** `limiar_incerto = 16` e `max_incertas = 3`. Quadro com mão ou sombra forte é descartado; quadro normal passa.
-- **Pares perigosos:** V–Z (marrons) é o único que não separa por cor (6,7% das casas trocadas); I–T, L–N e U–Y ficam abaixo de 2%.
-- **Plano B (ArUco):** acionado só para V e Z. Antes, vale travar a exposição do celular e tentar desempate pela forma da peça.
-- **Exposição:** a câmera clareia a foto conforme entram peças (papel de 197 a 225), e as cores sobem junto.
-  Travar exposição e balanço de branco no app da câmera é a melhor correção.
-- Refaça a paleta no local definitivo, com o tabuleiro cheio e a exposição travada.
+Ordem dos cliques: superior esquerdo, superior direito, inferior direito e inferior esquerdo, com o lado de 10 casas na horizontal.
 
 ## Modos de identificação
 
-`config.py` tem `identificacao`: `"combinado"` (padrão), `"cor"` ou `"forma"`. Todos produzem a mesma
-grade 6×10 (letra, `.` ou `?`). O **combinado** decide por peça: usa a do modo forma e, onde ele não
-resolve, a do modo cor.
+Em `identificacao`, no `config.py`: `combinado` (padrão), `cor` ou `forma`. Para trocar sem editar o arquivo, passe um JSON em `--config`.
 
-| | Modo `"cor"` | Modo `"forma"` (`forma.py`) |
-|---|---|---|
-| Como dá nome | Cada casa recebe a cor mais próxima da paleta. | Agrupa casas ocupadas vizinhas e dá o nome pela **forma** do grupo. |
-| Vazia × ocupada | Cor mais próxima é o `.` da paleta. | Distância até a casa vazia (`calibracao/vazio.json` ou o `.` da paleta); no meio vira `?`. |
-| Peças encostadas | Uma casa trocada invalida a peça. | Divide o grupo em pentaminós por cobertura exata (Algoritmo X do `gerar_solucoes.py`). |
-| Peça inválida | Letra com ≠ 5 casas ou forma errada. | O que não se divide volta para o modo cor, e o validador acusa. |
+## Peça não reconhecida
 
-Para usar outro modo, passe um JSON no `--config`:
-
-```powershell
-'{"identificacao": "cor"}' | Out-File -Encoding ascii cor.json
-python loop_ao_vivo.py --fonte 0 --sessao ID --config cor.json
-```
-
-Os limiares ficam em `config.py`. Para medir a cor das casas vazias na câmera real (opcional), com o
-tabuleiro vazio no enquadramento: `python forma.py foto_do_tabuleiro_vazio.jpg` (grava `calibracao/vazio.json`).
-
-A comparação entre os modos nas fotos reais está em `calibracao/comparacao_modos.md`
-(`python comparar_modos.py --pasta fotos-pentaminos`).
-
-## Regras e decisões
-
-- **Orientações:** o modo físico aceita as **8** (rotação + espelho), pois o jogador vira a peça na mão.
-  O jogo digital e o documento de requisitos (RN07) continuam só com rotação (4). Em `config.py`,
-  `espelhar=False` volta à regra do digital.
-- **Soluções do 6×10** (calculadas por `gerar_solucoes.py`):
-  com espelhamento **2.339** (9.356 contando simetrias do tabuleiro), o número da especificação;
-  só rotação **53** (106 contando a rotação de 180°).
-- **Lab em vez de HSV:** a especificação fala em mediana em HSV. Usamos Lab, porque o matiz do HSV
-  dá a volta em 0/180 (vermelho) e é instável em cores escuras. Mesma ideia, medida mais robusta.
-- **Localização manual** (passo 2 do pipeline). ArUco fica como plano B, por peça, se a cor falhar.
-
-
-
-## Atividade 5 — loop ao vivo (câmera ou fonte sintética)
-
-O script `loop_ao_vivo.py` executa o `Pipeline` em aproximadamente 10 FPS e publica os eventos pelo WebSocket do backend. Os quadros descartados e os eventos ficam registrados no terminal.
-
-```powershell
-# 1. Inicie o backend (em outro terminal, na pasta backend)
-uvicorn app.main:app --reload
-
-# 2. Crie uma sessão física pela tela /fisico ou pela API POST /sessions.
-# 3. Dentro de visao, execute o comando que a tela /fisico mostra:
-python loop_ao_vivo.py --fonte sintetica --sessao ID_DA_SESSAO
-
-# Câmera USB:
-python loop_ao_vivo.py --fonte 0 --sessao ID_DA_SESSAO
-
-# Celular (DroidCam/IP Webcam):
-python loop_ao_vivo.py --fonte http://IP_DO_CELULAR:4747/video --sessao ID_DA_SESSAO 
-```
-
-Para a câmera real, antes execute `localizacao.py` para salvar a homografia e `calibrar_fotos.py` (ou o procedimento de calibração já documentado) para criar a paleta. A fonte sintética não precisa de câmera, homografia ou paleta reais: usa a paleta e a perspectiva artificiais do módulo `sintetico.py`.
-
-## Atividades 7, 9 e 10 — integração
-
-- O serviço Python conecta em `ws://localhost:8000/ws/sessions/{id}?role=vision`.
-- A interface do navegador conecta em `ws://localhost:8000/ws/sessions/{id}`. O backend mantém uma sala por sessão e retransmite `board_state`, `piece_placed`, `piece_removed`, `camera_status` e `game_won`.
-- A tela `/fisico` cria uma sessão `modo=fisico`, espelha a grade, mostra status, tempo, peças detectadas/restantes e eventos. Os botões Pausar/Continuar enviam controles ao loop; Reiniciar abandona a sessão atual para iniciar outra.
-- Ao receber `game_won`, o backend finaliza a sessão, calcula o tempo, guarda o tabuleiro final e mantém as jogadas ordenadas por sequência. A tela consulta `/sessions?modo=fisico&status=vencida&pecas=12` para exibir o ranking físico.
-
-A tela física mostra o comando para iniciar o processo Python em um segundo terminal. O navegador não inicia processos locais por conta própria.
+- **O que acontece:** a casa sem identificação fica `?`, sem receber a letra de outra peça. Com o tabuleiro cheio, a visão escolhe a solução do 6×10 que mais combina com as cores. Se a dúvida durar 2 s, a tela pergunta ao jogador.
+- **O que o jogador faz:** escolhe a letra, ajusta as casas tocando no tabuleiro e confirma. A resposta vale até a peça sair do tabuleiro.
+- **Parâmetros (`config.py`):** `segundos_duvida`, `margem_encaixe`, `limiar_fora_encaixe`, `max_fora_encaixe`, `max_incertas_mao`.
